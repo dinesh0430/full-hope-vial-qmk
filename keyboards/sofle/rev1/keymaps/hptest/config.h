@@ -1,0 +1,78 @@
+// clang-format off
+
+#pragma once
+
+#define BOOTMAGIC_ROW 0
+#define BOOTMAGIC_COLUMN 0
+#define BOOTMAGIC_ROW_RIGHT 9
+#define BOOTMAGIC_COLUMN_RIGHT 0
+
+#if defined(IS_LEFT_SIDE)
+    // Left Side Explicit Configuration
+    #define VIAL_KEYBOARD_UID { 0x05, 0xCD, 0x9F, 0x8A, 0xF4, 0xDF, 0xDE, 0xB2 }
+    // Uses default PRODUCT_ID (0x0287) from your info.json/rules.mk
+	// // #define BOOTMAGIC_ROW 0     // (Not required: globally defined at top)
+    // // #define BOOTMAGIC_COLUMN 0  // (Not required: globally defined at top)
+
+#elif defined(IS_RIGHT_SIDE)
+    // Right Side Explicit Configuration
+    #define VIAL_KEYBOARD_UID { 0x05, 0xCD, 0x9F, 0x8A, 0xF4, 0xDF, 0xDE, 0xB3 }
+    #undef  PRODUCT_ID
+    #define PRODUCT_ID 0x0288
+    #define MASTER_RIGHT
+	// // #define BOOTMAGIC_ROW 9     // (Not required: globally defined at top)
+    // // #define BOOTMAGIC_COLUMN 0  // (Not required: globally defined at top)
+
+#else
+    // Fail-safe: Stop the build if you forgot to specify a side in the terminal
+    #error "Error: You must specify -DIS_LEFT_SIDE or -DIS_RIGHT_SIDE in your build command!"
+#endif
+
+// The four corners; these are no longer required since we set VIAL_INSECURE = yes in rules.mk
+// #define VIAL_UNLOCK_COMBO_ROWS { 0, 1, 2, 3 }
+// #define VIAL_UNLOCK_COMBO_COLS { 0, 0, 0, 0 }
+
+// Maxed Out Vial Overrides (Thanks to 8MB Flash Storage!)
+#define DYNAMIC_KEYMAP_LAYER_COUNT 8
+#define DYNAMIC_KEYMAP_MACRO_COUNT 32
+#define VIAL_TAP_DANCE_ENTRIES 12
+#define VIAL_COMBO_ENTRIES 16
+
+#define RP2040_BOOTLOADER_DOUBLE_TAP_RESET
+#undef  RP2040_BOOTLOADER_DOUBLE_TAP_RESET_TIMEOUT
+#define RP2040_BOOTLOADER_DOUBLE_TAP_RESET_TIMEOUT 1000U
+
+// // #define CONSOLE_ENABLE      // (Not required: disabled to save USB endpoints and RAM)
+#define DEBUG_MATRIX_SCAN_RATE
+
+#define QUANTUM_PAINTER_NUM_FONTS 5 // 5 active fonts: rubik_24, rubik_48, nerd_32, modernpixels_24, modernpixels_12
+
+// #define TAPPING_TERM_PER_KEY   // (Not required unless custom per-key tap terms are needed in C instead of Vial GUI)
+
+// Disable the Leader timer entirely for stress-free single-key macros
+#define LEADER_NO_TIMEOUT
+
+// Disable native Quantum Painter display sleep (custom 1-min screensaver & 5-min sleep handled in oled_hope.c)
+#define QUANTUM_PAINTER_DISPLAY_TIMEOUT 0
+
+// Mouse Key Tuning (Near-constant speed, minimal acceleration)
+#define MK_COMBINED
+// Custom modification: We edited `quantum/mousekey.c` directly to add support for the `MK_COMBINED_ACL1_SPEED` macro.
+// Normally in `MK_COMBINED` mode, the `KC_ACL1` speed is strictly tied to `(MOUSEKEY_MOVE_DELTA * MOUSEKEY_MAX_SPEED) / 2`.
+// By adding this macro support to QMK core, we can set `KC_ACL1` to a specific constant speed (pixels per tick)
+// without affecting the default, un-accelerated starting/max speeds.
+#define MK_COMBINED_ACL1_SPEED 20
+#define MOUSEKEY_MOVE_DELTA   14
+#define MOUSEKEY_DELAY        0
+#define MOUSEKEY_INTERVAL     16
+#define MOUSEKEY_MAX_SPEED    8
+#define MOUSEKEY_TIME_TO_MAX  250
+
+// Scroll Wheel Tuning
+#define MOUSEKEY_WHEEL_DELAY        0
+#define MOUSEKEY_WHEEL_INTERVAL     50
+#define MOUSEKEY_WHEEL_MAX_SPEED    6
+#define MOUSEKEY_WHEEL_TIME_TO_MAX  80
+
+// Smoother HID reports
+#define MOUSE_EXTENDED_REPORT
