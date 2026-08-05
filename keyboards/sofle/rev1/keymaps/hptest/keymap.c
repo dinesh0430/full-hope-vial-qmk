@@ -4,7 +4,7 @@
 #include QMK_KEYBOARD_H
 #include "oled_hope.c"
 
-// 1. Setup Aliases (<7 chars)
+// 1. Setup Aliases (<=7 chars)
 #define DEL_WRD LCTL(KC_BSPC)
 #define CT_LEFT LCTL(KC_LEFT)
 #define CT_RGHT LCTL(KC_RIGHT)
@@ -15,6 +15,19 @@
 #define CT_END  LCTL(KC_END)
 #define SF_LPR  LSFT(KC_9)
 #define SF_RPR  LSFT(KC_0)
+#define MS_BTN1 KC_MS_BTN1
+#define MS_BTN2 KC_MS_BTN2
+#define MS_BTN3 KC_MS_BTN3
+#define MS_LEFT KC_MS_LEFT
+#define MS_DOWN KC_MS_DOWN
+#define MS_UP   KC_MS_UP
+#define MS_RGHT KC_MS_RIGHT
+#define WH_DOWN KC_MS_WH_DOWN
+#define WH_UP   KC_MS_WH_UP
+#define WH_LEFT KC_MS_WH_LEFT
+#define WH_RGHT KC_MS_WH_RIGHT
+#define TP_ACL  TD(TD_ACL)
+#define TP_BTN  TD(TD_BTN)
 
 // 2. Custom macros
 #define DEL_LIN (QK_USER + 0)      // Starts at the safe zone
@@ -372,13 +385,13 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 |--------+--------+--------+--------+--------+--------+--------.  .--------+--------+--------+--------+--------+--------+--------|
 | 1234567| 1234567| 1234567| 1234567| 1234567| 1234567| 1234567|  | 1234567| 1234567| 1234567| 1234567| 1234567| 1234567| 1234567|
 '-----------------+--------+--------+--------+--------+--------+  +--------+--------+--------+--------+--------+-----------------'
-* 		    	  | 1234567| 1234567| 1234567| 1234567| 1234567|  | 1234567| 1234567| 1234567| 1234567| 1234567|
-*                 +--------------------------------------------'  '--------------------------------------------'
+*                 | 1234567| 1234567| 1234567| 1234567| 1234567|  | 1234567| 1234567| 1234567| 1234567| 1234567|
+*                 +--------------------------------------------'  '--------------------------------------------+
 */
 
 [0] = LAYOUT(
   KC_GRV , KC_1   , KC_2   , KC_3   , KC_4   , KC_5   ,                      KC_6   , KC_7   , KC_8   , KC_9   , KC_0   , KC_MINS,
-  KC_TAB , KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ,                      KC_Y   , KC_U   , KC_I   , KC_O   , KC_P   , TG(3),
+  KC_TAB , KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ,                      KC_Y   , KC_U   , KC_I   , KC_O   , KC_P   , TG(3)  ,
   KC_ESC , KC_A   , KC_S   , KC_D   , KC_F   , KC_G   ,                      KC_H   , KC_J   , KC_K   , KC_L   , KC_SCLN, KC_QUOT,
   KC_LSFT, KC_Z   , KC_X   , KC_C   , KC_V   , KC_B   , KC_MUTE,    XXXXXXX, KC_N   , KC_M   , KC_COMM, KC_DOT , KC_SLSH, KC_RSFT,
                     TD_GUI , KC_LCTL, KC_LALT, SP_L1  , KC_ENT ,    SP_L1  , KC_SPC , KC_RCTL, KC_RALT, KC_RGUI
@@ -402,10 +415,10 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 [3] = LAYOUT(
   KC_GRV , KC_1   , KC_2   , KC_3   , KC_4   , KC_5   ,                      KC_6   , KC_7   , KC_8   , KC_9   , KC_0   , KC_MINS,
-  KC_TAB , KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ,                      SPD_TOG, SCR_TOG, KC_MS_BTN1, KC_MS_BTN2, KC_MS_BTN3, TG(3),
-  KC_ESC , KC_A   , KC_S   , KC_D   , KC_F   , KC_G   ,                      KC_MS_LEFT, KC_MS_DOWN, KC_MS_UP, KC_MS_RIGHT, KC_SCLN, KC_QUOT,
-  KC_LSFT, KC_Z   , KC_X   , KC_C   , KC_V   , KC_B   , KC_MUTE,    XXXXXXX, SCR_TOG, KC_MS_WH_DOWN   , KC_MS_WH_UP, KC_MS_WH_LEFT , KC_MS_WH_RIGHT, KC_RSFT,
-                    TD_GUI , KC_LCTL, KC_LALT, KC_TRNS, KC_ENT ,    TD(TD_ACL), TD(TD_BTN), KC_ACL2, KC_RALT, SPD_CYC
+  KC_TAB , KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ,                      SPD_TOG, SCR_TOG, MS_BTN1, MS_BTN2, MS_BTN3, TG(3)  ,
+  KC_ESC , KC_A   , KC_S   , KC_D   , KC_F   , KC_G   ,                      MS_LEFT, MS_DOWN, MS_UP  , MS_RGHT, KC_SCLN, KC_QUOT,
+  KC_LSFT, KC_Z   , KC_X   , KC_C   , KC_V   , KC_B   , KC_MUTE,    XXXXXXX, SCR_TOG, WH_DOWN, WH_UP  , WH_LEFT, WH_RGHT, KC_RSFT,
+                    TD_GUI , KC_LCTL, KC_LALT, KC_TRNS, KC_ENT ,    TP_ACL , TP_BTN , KC_ACL2, KC_RALT, SPD_CYC
 )
 };
 
