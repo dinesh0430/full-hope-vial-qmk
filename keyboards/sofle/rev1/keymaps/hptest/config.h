@@ -2,6 +2,10 @@
 
 #pragma once
 
+// Custom split transaction IDs for syncing OLED state from master to slave.
+// This macro injects our transaction ID into QMK's serial_transaction_id enum.
+#define SPLIT_TRANSACTION_IDS_USER SPLIT_OLED_SYNC
+
 #define BOOTMAGIC_ROW 0
 #define BOOTMAGIC_COLUMN 0
 #define BOOTMAGIC_ROW_RIGHT 9
@@ -45,6 +49,8 @@
 // // #define CONSOLE_ENABLE      // (Not required: disabled to save USB endpoints and RAM)
 #define DEBUG_MATRIX_SCAN_RATE
 
+#define I2C0_CLOCK_SPEED 1000000
+#define I2C1_CLOCK_SPEED 1000000
 #define QUANTUM_PAINTER_NUM_FONTS 5 // 5 active fonts: rubik_24, rubik_48, nerd_32, modernpixels_24, modernpixels_12
 
 // #define TAPPING_TERM_PER_KEY   // (Not required unless custom per-key tap terms are needed in C instead of Vial GUI)

@@ -37,8 +37,10 @@
 #define ICON_UP (QK_USER + 4)      // Cycle Icon Up
 #define ICON_DN (QK_USER + 5)      // Cycle Icon Down
 #define ICN_RND (QK_USER + 6)      // Randomize Icons
-#define OLED_PU (QK_USER + 7)      // Cycle OLED Page Up
-#define OLED_PD (QK_USER + 8)      // Cycle OLED Page Down
+#define OLED_PU (QK_USER + 7)      // Cycle Left OLED Page Up
+#define OLED_PD (QK_USER + 8)      // Cycle Left OLED Page Down
+#define OLED_RPU (QK_USER + 14)    // Cycle Right OLED Page Up
+#define OLED_RPD (QK_USER + 15)    // Cycle Right OLED Page Down
 #define SPD_CYC (QK_USER + 9)      // Mod: Cycle default mouse speed (10, 15, 20, 25, 30, 45, 60)
 #define SPD_UP  (QK_USER + 10)     // Mod: Encoder increase mouse speed
 #define SPD_DN  (QK_USER + 11)     // Mod: Encoder decrease mouse speed
@@ -214,6 +216,15 @@ void matrix_scan_user(void) {
     }
 }
 
+// Force correct handedness for split keyboard regardless of which side is plugged into USB
+bool is_keyboard_left_impl(void) {
+#ifdef IS_LEFT_SIDE
+    return true;
+#else
+    return false;
+#endif
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     extern void oled_reset_screensaver(void);
     if (record->event.pressed) {
@@ -357,15 +368,29 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
         case OLED_PU:
             if (record->event.pressed) {
-                extern void cycle_oled_page(bool forward);
-                cycle_oled_page(true);
+                extern void cycle_left_oled_page(bool forward);
+                cycle_left_oled_page(true);
             }
             return false;
 
         case OLED_PD:
             if (record->event.pressed) {
-                extern void cycle_oled_page(bool forward);
-                cycle_oled_page(false);
+                extern void cycle_left_oled_page(bool forward);
+                cycle_left_oled_page(false);
+            }
+            return false;
+
+        case OLED_RPU:
+            if (record->event.pressed) {
+                extern void cycle_right_oled_page(bool forward);
+                cycle_right_oled_page(true);
+            }
+            return false;
+
+        case OLED_RPD:
+            if (record->event.pressed) {
+                extern void cycle_right_oled_page(bool forward);
+                cycle_right_oled_page(false);
             }
             return false;
     }
@@ -425,7 +450,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][2] = {
     [0] = { ENCODER_CCW_CW(KC_BRID, KC_BRIU), ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
-    [1] = { ENCODER_CCW_CW(OLED_PD, OLED_PU), ENCODER_CCW_CW(OLED_PD, OLED_PU) },
+    [1] = { ENCODER_CCW_CW(OLED_PD, OLED_PU), ENCODER_CCW_CW(OLED_RPD, OLED_RPU) },
     [2] = { ENCODER_CCW_CW(KC_TRNS, KC_TRNS), ENCODER_CCW_CW(KC_TRNS, KC_TRNS) },
     [3] = { ENCODER_CCW_CW(SPD_DN, SPD_UP),   ENCODER_CCW_CW(SPD_DN, SPD_UP) },
 };

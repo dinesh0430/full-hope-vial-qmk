@@ -5,6 +5,7 @@
 
 #ifdef QUANTUM_PAINTER_ENABLE
 #include <qp.h>
+#include "split_common/transactions.h"
 #include "fonts/rubik_24.qff.h"
 #include "fonts/rubik_48.qff.h"
 #include "fonts/nerd_32.qff.h"
@@ -202,7 +203,10 @@ static const char *nerd_icon_list[] = {
 #define NUM_ICONS (sizeof(nerd_icon_list) / sizeof(nerd_icon_list[0]))
 
 #define NUM_OLED_PAGES 4
-uint8_t current_oled_page = 0;
+
+// Independent OLED page for each side
+uint8_t left_oled_page = 0;
+uint8_t right_oled_page = 0;
 
 static uint8_t current_icon_idx = 0;
 bool is_leader_active = false;
@@ -213,7 +217,26 @@ bool is_screen_off = false;
 static uint8_t shuffled_indices[NUM_ICONS];
 static bool is_shuffled = false;
 
+// Display override: 0 = normal (independent pages), 1 = MOU, 2 = LDR
+static uint8_t display_override = 0;
+
+// Data struct synced from master to slave via custom split transaction
+typedef struct {
+    uint8_t right_oled_page;
+    uint8_t display_override;
+    bool is_shuffled;
+} oled_sync_data_t;
+
+// Slave-side copy of synced data
+static oled_sync_data_t slave_oled_sync = {0, 0, false};
+
 static void print_status_wpm(void); // Forward declaration to fix compiler error
+void oled_sync_slave_handler(uint8_t in_buflen, const void* in_data, uint8_t out_buflen, void* out_data); // Forward declaration
+
+static uint8_t get_my_icon_idx(void) {
+    return is_shuffled ? shuffled_indices[current_icon_idx] : current_icon_idx;
+}
+
 
 #define NUM_FALLING_ICONS 2
 #define FALLING_ICON_SPACING 80  // Total travel is 160px (-32 to 128), split across 2 icons
@@ -227,39 +250,39 @@ typedef struct {
 static void print_screensaver(void) {
     static falling_icon_t icons[NUM_FALLING_ICONS];
     static bool initialized = false;
-    
+
     if (!initialized) {
         for (int i = 0; i < NUM_FALLING_ICONS; i++) {
             // Space them 64px apart so both are visible on the 128px screen
             icons[i].y = -32 - (i * FALLING_ICON_SPACING);
             icons[i].icon_idx = rand() % NUM_ICONS;
-            
+
             const char* icon_str = nerd_icon_list[icons[i].icon_idx];
             int16_t iw = qp_textwidth(nerd_32_font, icon_str);
             icons[i].x = (iw < 32) ? ((32 - iw) / 2) : 0;
         }
         initialized = true;
     }
-    
+
     qp_clear(display);
-    
+
     for (int i = 0; i < NUM_FALLING_ICONS; i++) {
         const char* icon_str = nerd_icon_list[icons[i].icon_idx];
         qp_drawtext(display, icons[i].x, icons[i].y, nerd_32_font, icon_str);
-        
+
         icons[i].y += 2; // Fall down by 2 pixels per frame
-        
+
         // Once it falls completely off the bottom, wrap it around to the top
         if (icons[i].y > 128) {
             icons[i].y -= (FALLING_ICON_SPACING * NUM_FALLING_ICONS);
-            
+
             icons[i].icon_idx = rand() % NUM_ICONS;
             icon_str = nerd_icon_list[icons[i].icon_idx];
             int16_t iw = qp_textwidth(nerd_32_font, icon_str);
             icons[i].x = (iw < 32) ? ((32 - iw) / 2) : 0;
         }
     }
-    
+
     qp_flush(display);
 }
 
@@ -304,12 +327,35 @@ void reshuffle_icons(void) {
     shuffle_icons();
 }
 
+// Returns the correct OLED page for the current side
+static uint8_t get_my_oled_page(void) {
+    if (is_keyboard_left()) {
+        return left_oled_page;
+    } else {
+        // On the slave (right), use the synced value
+        if (!is_keyboard_master()) {
+            return slave_oled_sync.right_oled_page;
+        }
+        return right_oled_page;
+    }
+}
+
+// Returns the active display override for the current side
+static uint8_t get_my_display_override(void) {
+    if (is_keyboard_master()) {
+        return display_override;
+    } else {
+        return slave_oled_sync.display_override;
+    }
+}
+
 static void print_status_wpm(void) {
-    if (is_leader_active) {
-        // Draw a solid white rectangle over the entire screen (val=255 means white)
+    uint8_t my_override = get_my_display_override();
+
+    if (my_override == 2) {
+        // LDR (Leader) override — show on both sides
         qp_rect(display, 0, 0, 31, 127, 0, 0, 255, true);
 
-        // Draw "LDR" vertically using black text (fg=0) on white background (bg=255)
         const char* text_l = "L";
         const char* text_d = "D";
         const char* text_r = "R";
@@ -335,8 +381,9 @@ static void print_status_wpm(void) {
 
     uint8_t layer = get_highest_layer(layer_state);
     uint8_t current_wpm = get_current_wpm();
+    uint8_t my_page = get_my_oled_page();
 
-    switch (current_oled_page) {
+    switch (my_page) {
         case 0: {
             // Top: Layer (Rubik 48)
             const char* layer_str;
@@ -359,7 +406,7 @@ static void print_status_wpm(void) {
             qp_drawtext(display, wx, 55, rubik_24_font, wpm_str);
 
             // Bottom: Nerd Font Cyclable Icon (Y = 90)
-            uint8_t actual_idx = is_shuffled ? shuffled_indices[current_icon_idx] : current_icon_idx;
+            uint8_t actual_idx = get_my_icon_idx();
             const char* icon_str = nerd_icon_list[actual_idx];
             int16_t iw = qp_textwidth(nerd_32_font, icon_str);
             int16_t ix = (32 - iw) / 2;
@@ -369,41 +416,41 @@ static void print_status_wpm(void) {
         }
         case 1: {
             // Page 2: WPM Battery Bar & Layer
-            
+
             // Top: 2 Horizontal Bars (Y=8 to 22)
             // Bar 1 (Fills Left to Right)
             qp_rect(display, 2, 8, 29, 13, 0,0,255, true); // Frame
             qp_rect(display, 3, 9, 28, 12, 0,0,0, true);   // Empty
-            
+
             // Bar 2 (Fills Right to Left)
             qp_rect(display, 2, 17, 29, 22, 0,0,255, true); // Frame
             qp_rect(display, 3, 18, 28, 21, 0,0,0, true);   // Empty
-            
+
             // Calculate fill based on WPM (Max 120, inner width is 26 pixels)
             uint8_t wpm_cap = current_wpm > 120 ? 120 : current_wpm;
             uint8_t fill_w = (wpm_cap * 26) / 120;
-            
+
             if (fill_w > 0) {
                 // Top fill (L -> R)
                 qp_rect(display, 3, 9, 2 + fill_w, 12, 0,0,255, true);
                 // Bottom fill (R -> L)
                 qp_rect(display, 29 - fill_w, 18, 28, 21, 0,0,255, true);
             }
-            
+
             // Middle: Layer Indicator (Huge font)
             const char* layer_str;
             if (layer == 0) layer_str = "0";
             else if (layer == 1) layer_str = "1";
             else if (layer == 2) layer_str = "2";
             else layer_str = "+";
-            
+
             int16_t lw = qp_textwidth(rubik_48_font, layer_str);
             int16_t lx = (32 - lw) / 2;
             if (lx < 0) lx = 0;
             qp_drawtext(display, lx, 35, rubik_48_font, layer_str);
-            
+
             // Ending: Changing Icon
-            uint8_t actual_idx = is_shuffled ? shuffled_indices[current_icon_idx] : current_icon_idx;
+            uint8_t actual_idx = get_my_icon_idx();
             const char* icon_str = nerd_icon_list[actual_idx];
             int16_t iw = qp_textwidth(nerd_32_font, icon_str);
             int16_t ix = (32 - iw) / 2;
@@ -419,36 +466,36 @@ static void print_status_wpm(void) {
             else if (layer == 1) layer_str = "L1";
             else if (layer == 2) layer_str = "L2";
             else layer_str = "L+";
-            
+
             int16_t lw = qp_textwidth(rubik_24_font, layer_str);
             int16_t lx = (32 - lw) / 2;
             if (lx < 0) lx = 0;
             qp_drawtext(display, lx, 5, rubik_24_font, layer_str);
-            
+
             // 3 EQ Bars based on WPM (Restricted max height to 40)
             uint8_t h1 = (current_wpm * 3) % 30;
-            uint8_t h2 = current_wpm > 40 ? 40 : current_wpm; 
+            uint8_t h2 = current_wpm > 40 ? 40 : current_wpm;
             uint8_t h3 = (current_wpm * 5) % 35;
-            
+
             if (h1 < 2) h1 = 2;
             if (h2 < 2) h2 = 2;
             if (h3 < 2) h3 = 2;
-            
+
             // Draw bars starting from Y=85 to leave room for the icon
             qp_rect(display, 4, 85 - h1, 10, 85, 0,0,255, true);
             qp_rect(display, 13, 85 - h2, 19, 85, 0,0,255, true);
             qp_rect(display, 22, 85 - h3, 28, 85, 0,0,255, true);
-            
+
             // Floating caps
             qp_rect(display, 4, 85 - h1 - 4, 10, 85 - h1 - 3, 0,0,255, true);
             qp_rect(display, 13, 85 - h2 - 4, 19, 85 - h2 - 3, 0,0,255, true);
             qp_rect(display, 22, 85 - h3 - 4, 28, 85 - h3 - 3, 0,0,255, true);
-            
+
             // Separator line
             qp_rect(display, 6, 92, 25, 93, 0,0,255, true);
-            
-            // Small changing icon section at the bottom (Y=95)
-            uint8_t actual_idx = is_shuffled ? shuffled_indices[current_icon_idx] : current_icon_idx;
+
+            // Small changing icon section (Y=95)
+            uint8_t actual_idx = get_my_icon_idx();
             const char* icon_str = nerd_icon_list[actual_idx];
             int16_t iw = qp_textwidth(nerd_32_font, icon_str);
             int16_t ix = (32 - iw) / 2;
@@ -459,26 +506,27 @@ static void print_status_wpm(void) {
         case 3: {
             // Page 3: Modern Typography Poster (Old 8)
             qp_rect(display, 0, 0, 31, 35, 0,0,255, true);
-            
+
             const char* layer_str;
             if (layer == 0) layer_str = "L0";
             else if (layer == 1) layer_str = "L1";
             else if (layer == 2) layer_str = "L2";
             else layer_str = "L+";
-            
+
             int16_t lw = qp_textwidth(rubik_24_font, layer_str);
             qp_drawtext_recolor(display, (32-lw)/2, 6, rubik_24_font, layer_str, 0,0,0, 0,0,255);
-            
+
             int16_t w_lbl = qp_textwidth(modernpixels_12_font, "WPM");
             qp_drawtext(display, 30 - w_lbl, 40, modernpixels_12_font, "WPM");
-            
+
             char wpm_str[16];
             snprintf(wpm_str, sizeof(wpm_str), "%d", current_wpm);
             qp_drawtext(display, 2, 58, modernpixels_24_font, wpm_str);
-            
+
             qp_rect(display, 2, 85, 30, 88, 0,0,255, true);
-            
-            uint8_t actual_idx = is_shuffled ? shuffled_indices[current_icon_idx] : current_icon_idx;
+
+            // Middle: Changing Icon
+            uint8_t actual_idx = get_my_icon_idx();
             const char* icon_str = nerd_icon_list[actual_idx];
             int16_t iw = qp_textwidth(nerd_32_font, icon_str);
             qp_drawtext(display, (32-iw)/2, 95, nerd_32_font, icon_str);
@@ -492,6 +540,7 @@ static void print_status_wpm(void) {
 // OLED Leader state updater
 void oled_set_leader_state(bool active) {
     is_leader_active = active;
+    display_override = active ? 2 : 0;
     print_status_wpm();
 }
 
@@ -506,14 +555,34 @@ void cycle_nerd_icon(bool forward) {
     print_status_wpm();
 }
 
-void cycle_oled_page(bool forward) {
+// Left encoder changes left OLED page
+void cycle_left_oled_page(bool forward) {
     if (forward) {
-        current_oled_page = (current_oled_page + 1) % NUM_OLED_PAGES;
+        left_oled_page = (left_oled_page + 1) % NUM_OLED_PAGES;
     } else {
-        if (current_oled_page == 0) current_oled_page = NUM_OLED_PAGES - 1;
-        else current_oled_page--;
+        if (left_oled_page == 0) left_oled_page = NUM_OLED_PAGES - 1;
+        else left_oled_page--;
     }
-    print_status_wpm();
+    // Only redraw if this side is the left side (master)
+    if (is_keyboard_left()) {
+        print_status_wpm();
+    }
+}
+
+// Right encoder changes right OLED page (processed on master, synced to slave)
+void cycle_right_oled_page(bool forward) {
+    if (forward) {
+        right_oled_page = (right_oled_page + 1) % NUM_OLED_PAGES;
+    } else {
+        if (right_oled_page == 0) right_oled_page = NUM_OLED_PAGES - 1;
+        else right_oled_page--;
+    }
+    // Master doesn't need to redraw here; the value will be synced to slave
+}
+
+// Keep backward compatible aliases for keymap.c OLED_PU/OLED_PD (these now cycle the left page)
+void cycle_oled_page(bool forward) {
+    cycle_left_oled_page(forward);
 }
 
 void qp_setup_oled(void) {
@@ -525,13 +594,24 @@ void qp_setup_oled(void) {
     modernpixels_24_font = qp_load_font_mem(font_modernpixels_24);
     modernpixels_12_font = qp_load_font_mem(font_modernpixels_12);
     last_activity_timer = timer_read32();
+
+    // Register custom split transaction for OLED sync (master -> slave)
+    transaction_register_rpc(SPLIT_OLED_SYNC, oled_sync_slave_handler);
+}
+
+// Slave-side handler: receives OLED sync data from master
+void oled_sync_slave_handler(uint8_t in_buflen, const void* in_data, uint8_t out_buflen, void* out_data) {
+    const oled_sync_data_t* data = (const oled_sync_data_t*)in_data;
+    slave_oled_sync.right_oled_page = data->right_oled_page;
+    slave_oled_sync.display_override = data->display_override;
+    slave_oled_sync.is_shuffled = data->is_shuffled;
 }
 
 static void print_mouse_mode_screen(bool inverted) {
     extern uint8_t dynamic_mouse_speed;
     extern uint8_t dynamic_scroll_speed;
     extern uint8_t speed_cycle_mode;
-    
+
     char mode_str[4];
     if (speed_cycle_mode == 0) strcpy(mode_str, "LOW");
     else strcpy(mode_str, "MID");
@@ -541,7 +621,7 @@ static void print_mouse_mode_screen(bool inverted) {
 
     char scroll_str[8];
     snprintf(scroll_str, sizeof(scroll_str), "S:%d", dynamic_scroll_speed);
-    
+
     int16_t mw = qp_textwidth(modernpixels_12_font, mode_str);
     int16_t mx = (32 - mw) / 2; if (mx < 0) mx = 0;
 
@@ -563,18 +643,63 @@ static void print_mouse_mode_screen(bool inverted) {
         qp_drawtext(display, 6, 28, rubik_24_font, "O");
         qp_drawtext(display, 6, 52, rubik_24_font, "U");
     }
-    
+
     // Always draw mode, speed, and scroll on black background at the bottom
     qp_drawtext(display, mx, 83, modernpixels_12_font, mode_str);
     qp_drawtext(display, sx, 97, modernpixels_12_font, speed_str);
     qp_drawtext(display, scx, 111, modernpixels_12_font, scroll_str);
-    
+
     qp_flush(display);
 }
 
 void housekeeping_task_user(void) {
     static bool was_mouse_mode = false;
 
+    // --- Slave-side activity detection ---
+    // On the slave, process_record_user never fires, so we detect activity here
+    if (!is_keyboard_master()) {
+        static uint8_t prev_synced_layer = 255;
+        static uint8_t prev_synced_wpm = 255;
+        static uint8_t prev_synced_override = 255;
+
+        uint8_t cur_layer = get_highest_layer(layer_state);
+        uint8_t cur_wpm = get_current_wpm();
+        uint8_t cur_override = slave_oled_sync.display_override;
+
+        // If any synced data changed, it means the master is active
+        if (cur_layer != prev_synced_layer || cur_wpm != prev_synced_wpm || cur_override != prev_synced_override) {
+            prev_synced_layer = cur_layer;
+            prev_synced_wpm = cur_wpm;
+            prev_synced_override = cur_override;
+            oled_reset_screensaver();
+        }
+
+        // Trigger reshuffle on slave if master shuffled
+        if (slave_oled_sync.is_shuffled && !is_shuffled) {
+            void reshuffle_icons(void);
+            reshuffle_icons();
+        }
+
+        // Also detect local (right-side) keypresses via matrix activity
+        if (last_matrix_activity_elapsed() < 1000) {
+            oled_reset_screensaver();
+        }
+    }
+
+    // --- Master: sync OLED data to slave ---
+    if (is_keyboard_master()) {
+        static uint32_t last_sync = 0;
+        if (timer_elapsed32(last_sync) > 50) { // Sync every 50ms
+            last_sync = timer_read32();
+            oled_sync_data_t sync_data;
+            sync_data.right_oled_page = right_oled_page;
+            sync_data.display_override = display_override;
+            sync_data.is_shuffled = is_shuffled;
+            transaction_rpc_send(SPLIT_OLED_SYNC, sizeof(sync_data), &sync_data);
+        }
+    }
+
+    // --- MOU mode: show on both sides (override = 1) ---
     // Skip screensaver/timeout on mouse layer (Layer 3) - user is actively mousing
     if (get_highest_layer(layer_state) == 3) {
         last_activity_timer = timer_read32();
@@ -586,21 +711,57 @@ void housekeeping_task_user(void) {
             is_screensaver_active = false;
         }
 
+        // Set override so both sides show MOU
+        if (is_keyboard_master()) {
+            display_override = 1;
+        }
+
         static uint32_t mouse_flash_timer = 0;
         static bool mouse_inverted = false;
         if (timer_elapsed32(mouse_flash_timer) > 500) { // flash every 500ms
             mouse_flash_timer = timer_read32();
             mouse_inverted = !mouse_inverted;
+        }
+
+        // Both sides draw the MOU screen (slave gets override=1 via sync)
+        uint8_t my_override = get_my_display_override();
+        if (my_override == 1) {
             print_mouse_mode_screen(mouse_inverted);
         }
-        
+
         was_mouse_mode = true;
         return; // Skip normal UI updates
     }
 
     if (was_mouse_mode) {
         was_mouse_mode = false;
+        if (is_keyboard_master()) {
+            display_override = 0;
+        }
         print_status_wpm(); // Force an immediate redraw of the normal UI
+    }
+
+    // --- Slave: MOU override without being on layer 3 locally ---
+    // The slave might see override=1 from the synced data even though its local
+    // layer_state hasn't changed to 3 yet (sync lag). Handle MOU drawing here too.
+    if (!is_keyboard_master() && get_my_display_override() == 1) {
+        last_activity_timer = timer_read32();
+        if (is_screen_off) {
+            is_screen_off = false;
+            qp_power(display, true);
+        }
+        if (is_screensaver_active) {
+            is_screensaver_active = false;
+        }
+
+        static uint32_t slave_mouse_flash_timer = 0;
+        static bool slave_mouse_inverted = false;
+        if (timer_elapsed32(slave_mouse_flash_timer) > 500) {
+            slave_mouse_flash_timer = timer_read32();
+            slave_mouse_inverted = !slave_mouse_inverted;
+        }
+        print_mouse_mode_screen(slave_mouse_inverted);
+        return;
     }
 
     uint32_t elapsed = timer_elapsed32(last_activity_timer);
@@ -636,18 +797,39 @@ void housekeeping_task_user(void) {
     static uint32_t last_draw = 0;
     static uint8_t last_wpm = 255;
     static uint8_t last_layer = 255;
+    static uint8_t last_page = 255;
 
-    // Do not auto-update normal UI if leader screen is active
-    if (is_leader_active) return;
+    // Do not auto-update normal UI if leader screen is active (override = 2)
+    uint8_t my_override = get_my_display_override();
+    if (my_override == 2) {
+        // If we haven't drawn the LDR screen yet, draw it now
+        static bool ldr_drawn = false;
+        if (!ldr_drawn) {
+            print_status_wpm();
+            ldr_drawn = true;
+        }
+        // Reset when override clears
+        if (my_override != 2) ldr_drawn = false;
+        return;
+    }
+    // Reset LDR drawn flag when not in LDR mode
+    static bool ldr_was_active = false;
+    if (my_override != 2 && ldr_was_active) {
+        ldr_was_active = false;
+        print_status_wpm();
+    }
+    if (my_override == 2) ldr_was_active = true;
 
     uint8_t current_wpm = get_current_wpm();
     uint8_t current_layer = get_highest_layer(layer_state);
+    uint8_t current_page = get_my_oled_page();
 
-    if (current_wpm != last_wpm || current_layer != last_layer) {
+    if (current_wpm != last_wpm || current_layer != last_layer || current_page != last_page) {
         if (timer_elapsed32(last_draw) > 100) {
             print_status_wpm();
             last_wpm = current_wpm;
             last_layer = current_layer;
+            last_page = current_page;
             last_draw = timer_read32();
         }
     }
