@@ -27,4 +27,4 @@ VIAL_INSECURE = yes
 TAP_DANCE_ENABLE = yes       # Keeps QMK's core Tap Dance engine on
 WPM_ENABLE = yes
 
-SRC += fonts/rubik_24.qff.c fonts/rubik_48.qff.c fonts/nerd_32.qff.c fonts/modernpixels_24.qff.c fonts/modernpixels_12.qff.c
+SRC += fonts/rubik_24.qff.c fonts/rubik_48.qff.c fonts/nerd_32.qff.c fonts/modernpixels_24.qff.c fonts/modernpixels_12.qff.c fonts/sfmono_16.qff.c fonts/rubik_16.qff.c

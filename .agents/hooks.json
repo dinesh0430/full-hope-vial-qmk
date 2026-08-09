@@ -1,0 +1,14 @@
+{
+  "auto-allow-compile": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "command": "python3 allow_compile.py"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -28,6 +28,7 @@
 #define WH_RGHT KC_MS_WH_RIGHT
 #define TP_ACL  TD(TD_ACL)
 #define TP_BTN  TD(TD_BTN)
+#define INV_ACL TD(TD_SCLN_INV)
 
 // 2. Custom macros
 #define DEL_LIN (QK_USER + 0)      // Starts at the safe zone
@@ -37,10 +38,12 @@
 #define ICON_UP (QK_USER + 4)      // Cycle Icon Up
 #define ICON_DN (QK_USER + 5)      // Cycle Icon Down
 #define ICN_RND (QK_USER + 6)      // Randomize Icons
-#define OLED_PU (QK_USER + 7)      // Cycle Left OLED Page Up
-#define OLED_PD (QK_USER + 8)      // Cycle Left OLED Page Down
-#define OLED_RPU (QK_USER + 14)    // Cycle Right OLED Page Up
-#define OLED_RPD (QK_USER + 15)    // Cycle Right OLED Page Down
+#define SS_T_UP (QK_USER + 7)          // Increase screensaver timeout
+#define SS_T_DN (QK_USER + 8)          // Decrease screensaver timeout
+#define OFF_T_UP (QK_USER + 14)        // Increase screenoff timeout
+#define OFF_T_DN (QK_USER + 15)        // Decrease screenoff timeout
+#define DLY_UP   (QK_USER + 16)    // Mod: Encoder increase string delay
+#define DLY_DN   (QK_USER + 17)    // Mod: Encoder decrease string delay
 #define SPD_CYC (QK_USER + 9)      // Mod: Cycle default mouse speed (10, 15, 20, 25, 30, 45, 60)
 #define SPD_UP  (QK_USER + 10)     // Mod: Encoder increase mouse speed
 #define SPD_DN  (QK_USER + 11)     // Mod: Encoder decrease mouse speed
@@ -52,7 +55,8 @@
 enum {
     TD_GUI_LEADER = 0,
     TD_ACL,
-    TD_BTN
+    TD_BTN,
+    TD_SCLN_INV
 };
 
 extern tap_dance_action_t tap_dance_actions[];
@@ -72,6 +76,7 @@ enum {
 static td_state_t td_gui_state = { .is_press_action = true, .state = 0 };
 static td_state_t td_acl_state = { .is_press_action = true, .state = 0 };
 static td_state_t td_btn_state = { .is_press_action = true, .state = 0 };
+static td_state_t td_scln_inv_state = { .is_press_action = true, .state = 0 };
 
 uint8_t cur_dance(tap_dance_state_t *state) {
     if (state->count == 1) {
@@ -155,9 +160,73 @@ void btn_reset(tap_dance_state_t *state, void *user_data) {
     td_btn_state.state = 0;
 }
 
+void scln_inv_finished(tap_dance_state_t *state, void *user_data) {
+    td_scln_inv_state.state = cur_dance(state);
+    switch (td_scln_inv_state.state) {
+        case SINGLE_TAP: {
+            extern uint8_t dynamic_mouse_speed;
+            extern uint8_t speed_cycle_mode;
+            if (speed_cycle_mode == 0) {
+                if (dynamic_mouse_speed == 5) dynamic_mouse_speed = 10;
+                else if (dynamic_mouse_speed == 10) dynamic_mouse_speed = 15;
+                else dynamic_mouse_speed = 5;
+            } else {
+                if (dynamic_mouse_speed == 7) dynamic_mouse_speed = 14;
+                else dynamic_mouse_speed = 7;
+            }
+            break;
+        }
+        case SINGLE_HOLD:
+            register_code(KC_ACL0);
+            break;
+        case DOUBLE_HOLD:
+            register_code(KC_ACL1);
+            break;
+    }
+}
+
+void scln_inv_reset(tap_dance_state_t *state, void *user_data) {
+    switch (td_scln_inv_state.state) {
+        case SINGLE_HOLD:
+            unregister_code(KC_ACL0);
+            break;
+        case DOUBLE_HOLD:
+            unregister_code(KC_ACL1);
+            break;
+    }
+    td_scln_inv_state.state = 0;
+}
+
+typedef union {
+    uint32_t raw;
+    struct {
+        uint8_t string_delay;
+    };
+} user_config_t;
+
+user_config_t user_config;
+
+uint8_t speed_cycle_mode = 1; // Mod: 0=low(5,10,15), 1=mid(7,14)
+uint8_t dynamic_string_delay = 50; // Initial string delay
+
+bool eeprom_needs_update = false;
+uint32_t eeprom_timer = 0;
+
+void eeconfig_init_user(void) {
+    user_config.raw = 0;
+    user_config.string_delay = 50;
+    eeconfig_update_user(user_config.raw);
+}
+
 void qp_setup_oled(void);
 
 void keyboard_post_init_user(void) {
+    user_config.raw = eeconfig_read_user();
+    if (user_config.string_delay < 10 || user_config.string_delay > 250) {
+        user_config.string_delay = 50;
+    }
+    dynamic_string_delay = user_config.string_delay;
+
     qp_setup_oled();
     tap_dance_action_t action = ACTION_TAP_DANCE_FN_ADVANCED(NULL, gui_lead_finished, gui_lead_reset);
     tap_dance_actions[TD_GUI_LEADER] = action;
@@ -167,6 +236,9 @@ void keyboard_post_init_user(void) {
 
     tap_dance_action_t action_btn = ACTION_TAP_DANCE_FN_ADVANCED(NULL, btn_finished, btn_reset);
     tap_dance_actions[TD_BTN] = action_btn;
+
+    tap_dance_action_t action_scln_inv = ACTION_TAP_DANCE_FN_ADVANCED(NULL, scln_inv_finished, scln_inv_reset);
+    tap_dance_actions[TD_SCLN_INV] = action_scln_inv;
 
     // Hijack Vial's first combo in RAM to hardcode J+K -> TG(3)
     extern combo_t key_combos[];
@@ -204,9 +276,17 @@ static enum spc_state current_spc_state = SP_IDLE;
 static uint16_t spc_timer = 0;
 
 
-uint8_t speed_cycle_mode = 1; // Mod: 0=low(5,10,15), 1=mid(7,14)
-
 void matrix_scan_user(void) {
+    if (eeprom_needs_update && timer_elapsed32(eeprom_timer) > 3000) {
+        eeprom_needs_update = false;
+        user_config_t current_config;
+        current_config.raw = eeconfig_read_user();
+        if (current_config.string_delay != dynamic_string_delay) {
+            current_config.string_delay = dynamic_string_delay;
+            eeconfig_update_user(current_config.raw);
+        }
+    }
+
     if (current_spc_state == SP_FIRST_PRESS && timer_elapsed(spc_timer) >= 130) {
         current_spc_state = SP_HOLD_L1;
         layer_on(1);
@@ -295,6 +375,24 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 if (dynamic_scroll_speed > 5) dynamic_scroll_speed = 1;
             }
             return false;
+        case DLY_UP:
+            if (record->event.pressed) {
+                if (dynamic_string_delay <= 245) dynamic_string_delay += 10;
+                eeprom_needs_update = true;
+                eeprom_timer = timer_read32();
+                extern void show_dly_setting_screen(void);
+                show_dly_setting_screen();
+            }
+            return false;
+        case DLY_DN:
+            if (record->event.pressed) {
+                if (dynamic_string_delay >= 10) dynamic_string_delay -= 10;
+                eeprom_needs_update = true;
+                eeprom_timer = timer_read32();
+                extern void show_dly_setting_screen(void);
+                show_dly_setting_screen();
+            }
+            return false;
         case ICON_UP:
             if (record->event.pressed) {
                 extern void cycle_nerd_icon(bool forward);
@@ -366,33 +464,42 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             }
             return false;
 
-        case OLED_PU:
+        case SS_T_UP:
             if (record->event.pressed) {
-                extern void cycle_left_oled_page(bool forward);
-                cycle_left_oled_page(true);
+                extern uint32_t screensaver_timeout;
+                screensaver_timeout += 1000;
+                extern void show_timeout_setting_screen(void);
+                show_timeout_setting_screen();
             }
             return false;
 
-        case OLED_PD:
+        case SS_T_DN:
             if (record->event.pressed) {
-                extern void cycle_left_oled_page(bool forward);
-                cycle_left_oled_page(false);
+                extern uint32_t screensaver_timeout;
+                if (screensaver_timeout > 1000) screensaver_timeout -= 1000;
+                extern void show_timeout_setting_screen(void);
+                show_timeout_setting_screen();
             }
             return false;
 
-        case OLED_RPU:
+        case OFF_T_UP:
             if (record->event.pressed) {
-                extern void cycle_right_oled_page(bool forward);
-                cycle_right_oled_page(true);
+                extern uint32_t screenoff_timeout;
+                screenoff_timeout += 10000;
+                extern void show_timeout_setting_screen(void);
+                show_timeout_setting_screen();
             }
             return false;
 
-        case OLED_RPD:
+        case OFF_T_DN:
             if (record->event.pressed) {
-                extern void cycle_right_oled_page(bool forward);
-                cycle_right_oled_page(false);
+                extern uint32_t screenoff_timeout;
+                if (screenoff_timeout > 10000) screenoff_timeout -= 10000;
+                extern void show_timeout_setting_screen(void);
+                show_timeout_setting_screen();
             }
             return false;
+
     }
 
     return true; // Pass all other keys through normally
@@ -441,7 +548,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 [3] = LAYOUT(
   KC_GRV , KC_1   , KC_2   , KC_3   , KC_4   , KC_5   ,                      KC_6   , KC_7   , KC_8   , KC_9   , KC_0   , KC_MINS,
   KC_TAB , KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ,                      SPD_TOG, SCR_TOG, MS_BTN1, MS_BTN2, MS_BTN3, TG(3)  ,
-  KC_ESC , KC_A   , KC_S   , KC_D   , KC_F   , KC_G   ,                      MS_LEFT, MS_DOWN, MS_UP  , MS_RGHT, KC_SCLN, KC_QUOT,
+  KC_ESC , KC_A   , KC_S   , KC_D   , KC_F   , KC_G   ,                      MS_LEFT, MS_DOWN, MS_UP  , MS_RGHT, INV_ACL, KC_QUOT,
   KC_LSFT, KC_Z   , KC_X   , KC_C   , KC_V   , KC_B   , KC_MUTE,    XXXXXXX, SCR_TOG, WH_DOWN, WH_UP  , WH_LEFT, WH_RGHT, KC_RSFT,
                     TD_GUI , KC_LCTL, KC_LALT, KC_TRNS, KC_ENT ,    TP_ACL , TP_BTN , KC_ACL2, KC_RALT, SPD_CYC
 )
@@ -450,8 +557,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][2] = {
     [0] = { ENCODER_CCW_CW(KC_BRID, KC_BRIU), ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
-    [1] = { ENCODER_CCW_CW(OLED_PD, OLED_PU), ENCODER_CCW_CW(OLED_RPD, OLED_RPU) },
-    [2] = { ENCODER_CCW_CW(KC_TRNS, KC_TRNS), ENCODER_CCW_CW(KC_TRNS, KC_TRNS) },
+    [1] = { ENCODER_CCW_CW(SS_T_DN, SS_T_UP), ENCODER_CCW_CW(OFF_T_DN, OFF_T_UP) },
+    [2] = { ENCODER_CCW_CW(DLY_DN, DLY_UP),   ENCODER_CCW_CW(DLY_DN, DLY_UP) },
     [3] = { ENCODER_CCW_CW(SPD_DN, SPD_UP),   ENCODER_CCW_CW(SPD_DN, SPD_UP) },
 };
 
@@ -481,11 +588,12 @@ void leader_end_user(void) {
     oled_set_leader_state(false);
 
     if (leader_sequence_one_key(KC_A)) {
-        SEND_STRING_DELAY("bravewater123@", 50);
+        SEND_STRING_DELAY("bravewater123@", dynamic_string_delay);
     } else if (leader_sequence_one_key(KC_S)) {
-        SEND_STRING_DELAY("bravewater123#", 50);
+        SEND_STRING_DELAY("bravewater123#", dynamic_string_delay);
     } else if (leader_sequence_two_keys(KC_A, KC_A)) {
-        SEND_STRING_DELAY("bravewater123@", 130);
+        // Example: double key uses slower delay, or just use same dynamic delay
+        SEND_STRING_DELAY("bravewater123@", (dynamic_string_delay > 125) ? 250 : dynamic_string_delay * 2);
     }
 }
 

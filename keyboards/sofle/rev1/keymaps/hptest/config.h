@@ -51,7 +51,7 @@
 
 #define I2C0_CLOCK_SPEED 1000000
 #define I2C1_CLOCK_SPEED 1000000
-#define QUANTUM_PAINTER_NUM_FONTS 5 // 5 active fonts: rubik_24, rubik_48, nerd_32, modernpixels_24, modernpixels_12
+#define QUANTUM_PAINTER_NUM_FONTS 7 // 7 active fonts: rubik_24, rubik_48, nerd_32, modernpixels_24, modernpixels_12, sfmono_16, rubik_16
 
 // #define TAPPING_TERM_PER_KEY   // (Not required unless custom per-key tap terms are needed in C instead of Vial GUI)
 
