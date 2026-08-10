@@ -1,5 +1,3 @@
-// clang-format off
-
 #include "keycodes.h"
 #include QMK_KEYBOARD_H
 #include "oled_hope.c"
@@ -505,6 +503,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     return true; // Pass all other keys through normally
 }
 
+// clang-format off
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 /* Layout Reference
@@ -562,6 +562,7 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][2] = {
     [3] = { ENCODER_CCW_CW(SPD_DN, SPD_UP),   ENCODER_CCW_CW(SPD_DN, SPD_UP) },
 };
 
+// clang-format on
 
 #ifdef TAPPING_TERM_PER_KEY
 // Declare the Vial fallback function

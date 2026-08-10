@@ -22,7 +22,7 @@ Use this skill whenever generating or executing Git commits.
    * **Short Summary (Subject Line)**:
      * Keep to 50–72 characters.
      * Use conventional commit prefixes where appropriate (`fix:`, `feat:`, `refactor:`, `docs:`, `style:`).
-     * Written in imperative mood (e.g., `fix(hptest): update OLED timeout` instead of `fixed...`).
+     * Written in imperative mood (e.g., `fix(hp_km): update OLED timeout` instead of `fixed...`).
    * **Detailed Body**:
      * Separated from the subject line by a blank line.
      * Explains *what* was modified, *why* the change was made, and key context or rationale.

@@ -19,7 +19,7 @@ Future AI agents must test their code changes using the following command format
 
 ```bash
 # Fast-path make command for AI testing (swap RIGHT with LEFT as needed):
-make -r -R -f builddefs/build_keyboard.mk -s KEYBOARD=sofle/rev1 KEYMAP=hptest KEYBOARD_FILESAFE=sofle_rev1 VERBOSE=false COLOR=false SILENT=false QMK_BIN="qmk" CONVERT_TO=kb2040 EXTRAFLAGS=-DIS_RIGHT_SIDE TARGET=sofle_rev1_hptest_right
+make -r -R -f builddefs/build_keyboard.mk -s KEYBOARD=sofle/rev1 KEYMAP=hp_km KEYBOARD_FILESAFE=sofle_rev1 VERBOSE=false COLOR=false SILENT=false QMK_BIN="qmk" CONVERT_TO=kb2040 EXTRAFLAGS=-DIS_RIGHT_SIDE TARGET=sofle_rev1_hp_km_right
 ```
 This command serves as an excellent way to verify syntax and linker errors locally without getting bogged down by the interactive QMK wrapper.
 
