@@ -569,13 +569,13 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][2] = {
 uint16_t vial_get_tapping_term(uint16_t keycode, keyrecord_t *record);
 
 uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) {
-	switch (keycode) {
-		case SP_L1:
-			return 170; // Your custom tapping term logic
-		default:
-			// Fall back to Vial's dynamic settings and tap-dance configurations
-			return vial_get_tapping_term(keycode, record);
-	}
+    switch (keycode) {
+        case SP_L1:
+            return 170; // Your custom tapping term logic
+        default:
+            // Fall back to Vial's dynamic settings and tap-dance configurations
+            return vial_get_tapping_term(keycode, record);
+    }
 }
 #endif
 
