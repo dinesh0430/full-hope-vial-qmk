@@ -27,3 +27,20 @@ This file contains critical context and rules for agents working on this QMK fir
 - Any struct sent over the custom split RPC must be packed using `__attribute__((packed))`.
 - When reading multi-byte variables (like `uint32_t`) from the raw `in_data` buffer in the slave handler, **you must use `memcpy`** to copy the data into a local variable first. Directly casting or dereferencing misaligned pointers will cause the slave half to hard fault and freeze.
 - **RPC Payload Limit:** Custom split transactions have a hard cap of 32 bytes (`RPC_M2S_BUFFER_SIZE`). Do not exceed this in your sync structs.
+
+## Keymap Formatting & Keycode Length Rules
+- **Column Alignment & Width Limit:** Every keycode entry in the `keymaps[][MATRIX_ROWS][MATRIX_COLS]` matrix in `keymap.c` must have a maximum length of **7 characters** (padded with trailing spaces if shorter) so that all commas line up vertically and the grid remains human-readable.
+- **Short Aliases for Long Keycodes:** If a keycode or action exceeds 7 characters (e.g. `LCTL(KC_BSPC)` or `QK_SWAP_HANDS_TOGGLE`), define a meaningful `#define` alias of **<= 7 characters** at the top of `keymap.c` and use that alias in the matrix.
+  - **Example:**
+    ```c
+    // Top of keymap.c (Aliases <= 7 chars)
+    #define DEL_WRD LCTL(KC_BSPC)  // 7 chars: replaces 14-char keycode
+    #define SH_TOGG QK_SWAP_HANDS_TOGGLE // 7 chars: replaces 21-char keycode
+    ```
+    ```c
+    // In keymaps matrix:
+    [0] = LAYOUT(
+      KC_GRV , KC_1   , KC_2   , KC_3   , KC_4   , KC_5   ,                      KC_6   , KC_7   , KC_8   , KC_9   , KC_0   , KC_MINS,
+      KC_TAB , KC_Q   , DEL_WRD, KC_E   , KC_R   , KC_T   ,                      KC_Y   , KC_U   , KC_I   , KC_O   , KC_P   , SH_TOGG
+    )
+    ```
