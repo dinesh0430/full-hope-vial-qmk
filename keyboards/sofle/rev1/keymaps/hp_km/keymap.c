@@ -47,6 +47,7 @@
 #define SPD_DN  (QK_USER + 11)     // Mod: Encoder decrease mouse speed
 #define SPD_TOG (QK_USER + 12)     // Mod: Toggle between 5-step and 2-step speed increments
 #define SCR_TOG (QK_USER + 13)     // Mod: Toggle scroll speed
+#define ONE_HND (QK_USER + 18)     // Toggle One-Handed Mode
 #define TD_GUI  TD(0)
 
 // 3. Tap Dance Setup
@@ -253,6 +254,19 @@ void keyboard_post_init_user(void) {
     key_combos_keys[1][2] = COMBO_END;
     key_combos[1].keys = key_combos_keys[1];
     key_combos[1].keycode = TG(3);
+
+    // Left-hand combo to toggle One-Handed Mode (Q + T on Base / P + Y on Layer 4)
+    key_combos_keys[2][0] = KC_Q;
+    key_combos_keys[2][1] = KC_T;
+    key_combos_keys[2][2] = COMBO_END;
+    key_combos[2].keys = key_combos_keys[2];
+    key_combos[2].keycode = ONE_HND;
+
+    key_combos_keys[3][0] = KC_P;
+    key_combos_keys[3][1] = KC_Y;
+    key_combos_keys[3][2] = COMBO_END;
+    key_combos[3].keys = key_combos_keys[3];
+    key_combos[3].keycode = ONE_HND;
 }
 
 
@@ -273,6 +287,9 @@ enum spc_state {
 static enum spc_state current_spc_state = SP_IDLE;
 static uint16_t spc_timer = 0;
 
+bool one_handed_mode_enabled = false;
+static bool one_handed_space_held = false;
+static bool one_handed_space_used = false;
 
 void matrix_scan_user(void) {
     if (eeprom_needs_update && timer_elapsed32(eeprom_timer) > 3000) {
@@ -292,6 +309,13 @@ void matrix_scan_user(void) {
         current_spc_state = SP_IDLE;
         tap_code(KC_SPC);
     }
+
+    static bool last_one_hand_state = false;
+    if (one_handed_mode_enabled != last_one_hand_state) {
+        last_one_hand_state = one_handed_mode_enabled;
+        extern void print_status_wpm(void);
+        print_status_wpm();
+    }
 }
 
 // Force correct handedness for split keyboard regardless of which side is plugged into USB
@@ -307,6 +331,32 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     extern void oled_reset_screensaver(void);
     if (record->event.pressed) {
         oled_reset_screensaver();
+    }
+
+    // When One-Handed Mode is active:
+    // - Baseline: Left-hand keys type normally (Layer 0: Q W E R T...).
+    // - Hold Space: Shifts to Layer 4 momentarily (right-hand keys Y U I O P...).
+    // - Release Space: Returns to Base layer. If no keys were typed, tap Space.
+    if (one_handed_mode_enabled) {
+        if (keycode == SP_L1 || keycode == KC_SPC) {
+            if (record->event.pressed) {
+                one_handed_space_held = true;
+                one_handed_space_used = false;
+                layer_on(4); // Momentarily activate right-hand chars while Space is held
+            } else {
+                one_handed_space_held = false;
+                layer_off(4); // Revert back to normal left-hand chars
+                if (!one_handed_space_used) {
+                    tap_code(KC_SPC);
+                }
+            }
+            return false;
+        }
+
+        // If any other key is typed while holding Space, mark it as used so releasing doesn't emit a space
+        if (record->event.pressed && one_handed_space_held) {
+            one_handed_space_used = true;
+        }
     }
 
     // Seed RNG and shuffle icons on the very first keypress.
@@ -334,6 +384,18 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
 
     switch (keycode) {
+        case ONE_HND:
+            if (record->event.pressed) {
+                one_handed_mode_enabled = !one_handed_mode_enabled;
+                if (!one_handed_mode_enabled) {
+                    layer_off(4);
+                    one_handed_space_held = false;
+                    one_handed_space_used = false;
+                }
+                extern void print_status_wpm(void);
+                print_status_wpm();
+            }
+            return false;
         case SPD_TOG:
             if (record->event.pressed) {
                 speed_cycle_mode = (speed_cycle_mode + 1) % 2;
@@ -551,6 +613,15 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   KC_ESC , KC_A   , KC_S   , KC_D   , KC_F   , KC_G   ,                      MS_LEFT, MS_DOWN, MS_UP  , MS_RGHT, INV_ACL, KC_QUOT,
   KC_LSFT, KC_Z   , KC_X   , KC_C   , KC_V   , KC_B   , KC_MUTE,    XXXXXXX, SCR_TOG, WH_DOWN, WH_UP  , WH_LEFT, WH_RGHT, KC_RSFT,
                     TD_GUI , KC_LCTL, KC_LALT, KC_TRNS, KC_ENT ,    TP_ACL , TP_BTN , KC_ACL2, KC_RALT, SPD_CYC
+),
+
+// Layer 4: One-Handed Reverse (Mirrors right-hand keys on Left half when Space is held; Esc becomes Backspace)
+[4] = LAYOUT(
+  KC_MINS, KC_0   , KC_9   , KC_8   , KC_7   , KC_6   ,                      KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
+  KC_QUOT, KC_P   , KC_O   , KC_I   , KC_U   , KC_Y   ,                      KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
+  KC_BSPC, KC_SCLN, KC_L   , KC_K   , KC_J   , KC_H   ,                      KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
+  KC_ENT , KC_SLSH, KC_DOT , KC_COMM, KC_M   , KC_N   , KC_MUTE,    XXXXXXX, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
+                    TD_GUI , KC_LCTL, KC_LALT, SP_L1  , KC_ENT ,    KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS
 )
 };
 
@@ -560,6 +631,7 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][2] = {
     [1] = { ENCODER_CCW_CW(SS_T_DN, SS_T_UP), ENCODER_CCW_CW(OFF_T_DN, OFF_T_UP) },
     [2] = { ENCODER_CCW_CW(DLY_DN, DLY_UP),   ENCODER_CCW_CW(DLY_DN, DLY_UP) },
     [3] = { ENCODER_CCW_CW(SPD_DN, SPD_UP),   ENCODER_CCW_CW(SPD_DN, SPD_UP) },
+    [4] = { ENCODER_CCW_CW(KC_BRID, KC_BRIU), ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
 };
 
 // clang-format on

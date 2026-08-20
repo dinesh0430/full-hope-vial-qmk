@@ -471,8 +471,10 @@ static void print_status_wpm(void) {
     uint8_t current_wpm = get_current_wpm();
 
             // Top: Layer (Rubik 48)
+            extern bool one_handed_mode_enabled;
             const char* layer_str;
-            if (layer == 0) layer_str = "0";
+            if (one_handed_mode_enabled || layer == 4) layer_str = "4";
+            else if (layer == 0) layer_str = "0";
             else if (layer == 1) layer_str = "1";
             else if (layer == 2) layer_str = "2";
             else layer_str = "+";
@@ -480,7 +482,14 @@ static void print_status_wpm(void) {
             int16_t lw = qp_textwidth(rubik_48_font, layer_str);
             int16_t lx = (32 - lw) / 2;
             if (lx < 0) lx = 0;
-            qp_drawtext(display, lx, 0, rubik_48_font, layer_str);
+
+            if (one_handed_mode_enabled || layer == 4) {
+                // Inverted background for One-Handed mode / Layer 4
+                qp_rect(display, 0, 0, 32, 50, 0, 0, 255, true);
+                qp_drawtext_recolor(display, lx, 0, rubik_48_font, layer_str, 0, 0, 0, 0, 0, 255);
+            } else {
+                qp_drawtext(display, lx, 0, rubik_48_font, layer_str);
+            }
 
             // Middle: WPM (Rubik 24)
             char wpm_str[16];
