@@ -4,8 +4,8 @@ This file contains critical context and rules for agents working on this QMK fir
 
 ## Build Instructions
 - Always compile the firmware for the KB2040 MCU.
-- **Left Side:** `qmk compile -kb sofle/rev1 -km hp_km -e CONVERT_TO=kb2040 -e EXTRAFLAGS="-DIS_LEFT_SIDE"`
-- **Right Side:** `qmk compile -kb sofle/rev1 -km hp_km -e CONVERT_TO=kb2040 -e EXTRAFLAGS="-DIS_RIGHT_SIDE"`
+- **Left Side:** `qmk compile -kb sofle/rev1 -km hp_km -e CONVERT_TO=kb2040 -e EXTRAFLAGS="-DIS_LEFT_SIDE" -e TARGET=sofle_rev1_hp_km_left`
+- **Right Side:** `qmk compile -kb sofle/rev1 -km hp_km -e CONVERT_TO=kb2040 -e EXTRAFLAGS="-DIS_RIGHT_SIDE" -e TARGET=sofle_rev1_hp_km_right`
 - **Testing Tip:** When making rapid changes to UI or logic, you only need to compile and flash the **Left Side** to test the change. You do not need to compile both sides every time.
 - **Automation (Hooks):** The exact Left Side compilation command above is whitelisted via Antigravity lifecycle hooks.
   - `.agents/hooks.json` intercepts all `run_command` tool calls and pipes them to `.agents/allow_compile.py`.
