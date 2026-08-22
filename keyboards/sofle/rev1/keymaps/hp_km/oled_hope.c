@@ -473,19 +473,20 @@ static void print_status_wpm(void) {
             // Top: Layer (Rubik 48)
             extern bool one_handed_mode_enabled;
             const char* layer_str;
-            if (one_handed_mode_enabled || layer == 4) layer_str = "4";
+            if (one_handed_mode_enabled || layer == 5) layer_str = "5";
             else if (layer == 0) layer_str = "0";
-            else if (layer == 1) layer_str = "1";
-            else if (layer == 2) layer_str = "2";
-            else if (layer == 5) layer_str = "5";
+            else if (layer == 1) layer_str = "S";
+            else if (layer == 2) layer_str = "1";
+            else if (layer == 3) layer_str = "2";
+            else if (layer == 4) layer_str = "4";
             else layer_str = "+";
 
             int16_t lw = qp_textwidth(rubik_48_font, layer_str);
             int16_t lx = (32 - lw) / 2;
             if (lx < 0) lx = 0;
 
-            if (one_handed_mode_enabled || layer == 4) {
-                // Inverted background for One-Handed mode / Layer 4
+            if (one_handed_mode_enabled || layer == 5) {
+                // Inverted background for One-Handed mode / Layer 5
                 qp_rect(display, 0, 0, 32, 50, 0, 0, 255, true);
                 qp_drawtext_recolor(display, lx, 0, rubik_48_font, layer_str, 0, 0, 0, 0, 0, 255);
             } else {
@@ -673,9 +674,9 @@ void housekeeping_task_user(void) {
     }
 
     // --- MOU mode: show on both sides (override = 1) ---
-    // Skip screensaver/timeout on mouse layer (Layer 3) - user is actively mousing
+    // Skip screensaver/timeout on mouse layer (Layer 4) - user is actively mousing
     uint8_t active_layer = layer_state ? get_highest_layer(layer_state) : get_highest_layer(default_layer_state);
-    if (active_layer == 3) {
+    if (active_layer == 4) {
         last_activity_timer = timer_read32();
         if (is_screen_off) {
             is_screen_off = false;
@@ -730,9 +731,9 @@ void housekeeping_task_user(void) {
     }
 
     static bool was_slave_override = false;
-    // --- Slave: MOU override without being on layer 3 locally ---
+    // --- Slave: MOU override without being on layer 4 locally ---
     // The slave might see override=1 from the synced data even though its local
-    // layer_state hasn't changed to 3 yet (sync lag). Handle MOU drawing here too.
+    // layer_state hasn't changed to 4 yet (sync lag). Handle MOU drawing here too.
     if (!is_keyboard_master() && get_my_display_override() == 1) {
         last_activity_timer = timer_read32();
         if (is_screen_off) {

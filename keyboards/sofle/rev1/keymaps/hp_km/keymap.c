@@ -240,7 +240,7 @@ void keyboard_post_init_user(void) {
     tap_dance_action_t action_scln_inv = ACTION_TAP_DANCE_FN_ADVANCED(NULL, scln_inv_finished, scln_inv_reset);
     tap_dance_actions[TD_SCLN_INV] = action_scln_inv;
 
-    // Hijack Vial's first combo in RAM to hardcode J+K -> TG(3)
+    // Hijack Vial's first combo in RAM to hardcode J+K -> TG(4)
     extern combo_t key_combos[];
     extern uint16_t key_combos_keys[][5];
 
@@ -248,15 +248,15 @@ void keyboard_post_init_user(void) {
     key_combos_keys[0][1] = KC_K;
     key_combos_keys[0][2] = COMBO_END;
     key_combos[0].keys = key_combos_keys[0];
-    key_combos[0].keycode = TG(3);
+    key_combos[0].keycode = TG(4);
 
     key_combos_keys[1][0] = KC_MS_UP;
     key_combos_keys[1][1] = KC_MS_DOWN;
     key_combos_keys[1][2] = COMBO_END;
     key_combos[1].keys = key_combos_keys[1];
-    key_combos[1].keycode = TG(3);
+    key_combos[1].keycode = TG(4);
 
-    // Left-hand combo to toggle One-Handed Mode (Q + T on Base / P + Y on Layer 4)
+    // Left-hand combo to toggle One-Handed Mode (Q + T on Base / P + Y on Layer 5)
     key_combos_keys[2][0] = KC_Q;
     key_combos_keys[2][1] = KC_T;
     key_combos_keys[2][2] = COMBO_END;
@@ -294,7 +294,7 @@ void keyboard_post_init_user(void) {
     key_combos_keys[7][1] = KC_A;
     key_combos_keys[7][2] = COMBO_END;
     key_combos[7].keys = key_combos_keys[7];
-    key_combos[7].keycode = TG(3);
+    key_combos[7].keycode = TG(4);
 }
 
 
@@ -332,7 +332,7 @@ void matrix_scan_user(void) {
 
     if (current_spc_state == SP_FIRST_PRESS && timer_elapsed(spc_timer) >= 130) {
         current_spc_state = SP_HOLD_L1;
-        layer_on(1);
+        layer_on(2);
     } else if (current_spc_state == SP_WAITING_DOUBLE && timer_elapsed(spc_timer) >= 130) {
         current_spc_state = SP_IDLE;
         tap_code(KC_SPC);
@@ -362,18 +362,18 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
 
     // When One-Handed Mode is active:
-    // - Baseline: Left-hand keys type normally (Layer 0: Q W E R T...).
-    // - Hold Space: Shifts to Layer 4 momentarily (right-hand keys Y U I O P...).
+    // - Baseline: Left-hand keys type normally (Layer 0 / 1).
+    // - Hold Space: Shifts to Layer 5 momentarily (right-hand keys Y U I O P...).
     // - Release Space: Returns to Base layer. If no keys were typed, tap Space.
     if (one_handed_mode_enabled) {
         if (keycode == SP_L1 || keycode == KC_SPC) {
             if (record->event.pressed) {
                 one_handed_space_held = true;
                 one_handed_space_used = false;
-                layer_on(4); // Momentarily activate right-hand chars while Space is held
+                layer_on(5); // Momentarily activate right-hand chars while Space is held
             } else {
                 one_handed_space_held = false;
-                layer_off(4); // Revert back to normal left-hand chars
+                layer_off(5); // Revert back to normal left-hand chars
                 if (!one_handed_space_used) {
                     tap_code(KC_SPC);
                 }
@@ -400,9 +400,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     // If another key is pressed, handle any pending Space state first
     if (record->event.pressed && keycode != SP_L1) {
         if (current_spc_state == SP_FIRST_PRESS) {
-            // User held Space and typed another key -> activate Layer 1 instantly
+            // User held Space and typed another key -> activate Layer 2 instantly
             current_spc_state = SP_HOLD_L1;
-            layer_on(1);
+            layer_on(2);
+            keycode = keymap_key_to_keycode(2, record->event.key);
         } else if (current_spc_state == SP_WAITING_DOUBLE) {
             // User tapped Space and then typed another key -> send Space first
             current_spc_state = SP_IDLE;
@@ -414,10 +415,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case STRD_TG:
             if (record->event.pressed) {
-                if (default_layer_state & (1UL << 5)) {
+                if (default_layer_state & (1UL << 1)) {
                     default_layer_set(1UL << 0);
                 } else {
-                    default_layer_set(1UL << 5);
+                    default_layer_set(1UL << 1);
                 }
                 extern void print_status_wpm(void);
                 print_status_wpm();
@@ -427,7 +428,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             if (record->event.pressed) {
                 one_handed_mode_enabled = !one_handed_mode_enabled;
                 if (!one_handed_mode_enabled) {
-                    layer_off(4);
+                    layer_off(5);
                     one_handed_space_held = false;
                     one_handed_space_used = false;
                 }
@@ -507,9 +508,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         case SP_L1:
             if (record->event.pressed) {
                 if (current_spc_state == SP_WAITING_DOUBLE) {
-                    // Double-tap! Activate Layer 2
+                    // Double-tap! Activate Layer 3 (Media/Config)
                     current_spc_state = SP_HOLD_L2;
-                    layer_on(2);
+                    layer_on(3);
                 } else {
                     // First press
                     current_spc_state = SP_FIRST_PRESS;
@@ -521,10 +522,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     current_spc_state = SP_WAITING_DOUBLE;
                     spc_timer = timer_read();
                 } else if (current_spc_state == SP_HOLD_L1) {
-                    layer_off(1);
+                    layer_off(2);
                     current_spc_state = SP_IDLE;
                 } else if (current_spc_state == SP_HOLD_L2) {
-                    layer_off(2);
+                    layer_off(3);
                     current_spc_state = SP_IDLE;
                 }
             }
@@ -624,13 +625,23 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 [0] = LAYOUT(
   KC_GRV , KC_1   , KC_2   , KC_3   , KC_4   , KC_5   ,                      KC_6   , KC_7   , KC_8   , KC_9   , KC_0   , KC_MINS,
-  KC_TAB , KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ,                      KC_Y   , KC_U   , KC_I   , KC_O   , KC_P   , TG(3)  ,
+  KC_TAB , KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ,                      KC_Y   , KC_U   , KC_I   , KC_O   , KC_P   , TG(4)  ,
   KC_ESC , KC_A   , KC_S   , KC_D   , KC_F   , KC_G   ,                      KC_H   , KC_J   , KC_K   , KC_L   , KC_SCLN, KC_QUOT,
   KC_LSFT, KC_Z   , KC_X   , KC_C   , KC_V   , KC_B   , KC_MUTE,    XXXXXXX, KC_N   , KC_M   , KC_COMM, KC_DOT , KC_SLSH, KC_RSFT,
                     TD_GUI , KC_LCTL, KC_LALT, SP_L1  , KC_ENT ,    SP_L1  , KC_SPC , KC_RCTL, KC_RALT, KC_RGUI
 ),
 
+// Layer 1: Sturdy Layout (by Oxey)
 [1] = LAYOUT(
+  KC_GRV , KC_1   , KC_2   , KC_3   , KC_4   , KC_5   ,                      KC_6   , KC_7   , KC_8   , KC_9   , KC_0   , KC_MINS,
+  KC_TAB , KC_V   , KC_M   , KC_L   , KC_C   , KC_P   ,                      KC_X   , KC_F   , KC_O   , KC_U   , KC_J   , TG(4)  ,
+  KC_ESC , KC_S   , KC_T   , KC_R   , KC_D   , KC_Y   ,                      KC_DOT , KC_N   , KC_A   , KC_E   , KC_I   , KC_SLSH,
+  KC_LSFT, KC_Z   , KC_K   , KC_Q   , KC_G   , KC_W   , KC_MUTE,    XXXXXXX, KC_B   , KC_H   , KC_QUOT, KC_SCLN, KC_COMM, KC_RSFT,
+                    TD_GUI , KC_LCTL, KC_LALT, SP_L1  , KC_ENT ,    SP_L1  , KC_SPC , KC_RCTL, KC_RALT, KC_RGUI
+),
+
+// Layer 2: Navigation & Editing (Hold Space)
+[2] = LAYOUT(
   KC_PGUP, KC_F1  , KC_F2  , KC_F3  , KC_F4  , KC_F5  ,                      KC_F6  , KC_F7  , KC_F8  , KC_F9  , KC_F10 , KC_MINS,
   KC_PGDN, DEL_LIN, DEL_WRD, KC_HOME, KC_END , CT_ENT ,                      KC_Y   , KC_U   , KC_HOME, KC_END , SF_LPR , SF_RPR ,
   KC_UNDS, CT_SLSH, KC_LEFT, KC_UP  , KC_DOWN, KC_RGHT,                      KC_LEFT, KC_DOWN, KC_UP  , KC_RGHT, SF_LPR , KC_EQL ,
@@ -638,48 +649,41 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                     TD_GUI , KC_LCTL, KC_LALT, KC_NO  , KC_ENT ,    KC_NO  , KC_SPC , KC_RCTL, KC_RALT, KC_RGUI
 ),
 
-[2] = LAYOUT(
+// Layer 3: Media, Config & Bootmagic (Double-tap Hold Space)
+[3] = LAYOUT(
   KC_GRV , KC_1   , KC_2   , QK_BOOT, KC_4   , KC_5   ,                      KC_6   , KC_7   , QK_BOOT, KC_9   , KC_0   , KC_MINS,
   KC_TAB , KC_F7  , KC_F8  , CT_HOME, CT_END , CS_ENT ,                      KC_Y   , KC_U   , KC_I   , KC_O   , KC_P   , KC_BSPC,
   KC_MINS, QK_LEAD, CT_LEFT, KC_D   , KC_F   , CT_RGHT,                      CT_LEFT, KC_J   , KC_K   , CT_RGHT, KC_SCLN, KC_QUOT,
   KC_LSFT, KC_Z   , KC_X   , ICN_RND, ICON_DN, ICON_UP, KC_MUTE,    XXXXXXX, ICON_DN, ICON_UP, ICN_RND, KC_DOT , KC_SLSH, KC_RSFT,
-                    TD_GUI , KC_LCTL, KC_LALT, KC_NO  , KC_ENT ,    KC_NO  , MO(1)  , KC_RCTL, KC_RALT, KC_RGUI
+                    TD_GUI , KC_LCTL, KC_LALT, KC_NO  , KC_ENT ,    KC_NO  , MO(2)  , KC_RCTL, KC_RALT, KC_RGUI
 ),
 
-[3] = LAYOUT(
+// Layer 4: Mouse Mode
+[4] = LAYOUT(
   KC_GRV , KC_1   , KC_2   , KC_3   , KC_4   , KC_5   ,                      KC_6   , KC_7   , KC_8   , KC_9   , KC_0   , KC_MINS,
-  KC_TAB , KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ,                      SPD_TOG, SCR_TOG, MS_BTN1, MS_BTN2, MS_BTN3, TG(3)  ,
+  KC_TAB , KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ,                      SPD_TOG, SCR_TOG, MS_BTN1, MS_BTN2, MS_BTN3, TG(4)  ,
   KC_ESC , KC_A   , KC_S   , KC_D   , KC_F   , KC_G   ,                      MS_LEFT, MS_DOWN, MS_UP  , MS_RGHT, INV_ACL, KC_QUOT,
   KC_LSFT, KC_Z   , KC_X   , KC_C   , KC_V   , KC_B   , KC_MUTE,    XXXXXXX, SCR_TOG, WH_DOWN, WH_UP  , WH_LEFT, WH_RGHT, KC_RSFT,
                     TD_GUI , KC_LCTL, KC_LALT, KC_TRNS, KC_ENT ,    TP_ACL , TP_BTN , KC_ACL2, KC_RALT, SPD_CYC
 ),
 
-// Layer 4: One-Handed Reverse (Mirrors right-hand keys on Left half when Space is held; Esc becomes Backspace)
-[4] = LAYOUT(
+// Layer 5: One-Handed Reverse (Mirrors right-hand keys on Left half when Space is held; Esc becomes Backspace)
+[5] = LAYOUT(
   KC_MINS, KC_0   , KC_9   , KC_8   , KC_7   , KC_6   ,                      KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
   KC_QUOT, KC_P   , KC_O   , KC_I   , KC_U   , KC_Y   ,                      KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
   KC_BSPC, KC_SCLN, KC_L   , KC_K   , KC_J   , KC_H   ,                      KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
   KC_ENT , KC_SLSH, KC_DOT , KC_COMM, KC_M   , KC_N   , KC_MUTE,    XXXXXXX, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
                     TD_GUI , KC_LCTL, KC_LALT, SP_L1  , KC_ENT ,    KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS
-),
-
-// Layer 5: Sturdy Layout (by Oxey)
-[5] = LAYOUT(
-  KC_GRV , KC_1   , KC_2   , KC_3   , KC_4   , KC_5   ,                      KC_6   , KC_7   , KC_8   , KC_9   , KC_0   , KC_MINS,
-  KC_TAB , KC_V   , KC_M   , KC_L   , KC_C   , KC_P   ,                      KC_X   , KC_F   , KC_O   , KC_U   , KC_J   , TG(3)  ,
-  KC_ESC , KC_S   , KC_T   , KC_R   , KC_D   , KC_Y   ,                      KC_DOT , KC_N   , KC_A   , KC_E   , KC_I   , KC_SLSH,
-  KC_LSFT, KC_Z   , KC_K   , KC_Q   , KC_G   , KC_W   , KC_MUTE,    XXXXXXX, KC_B   , KC_H   , KC_QUOT, KC_SCLN, KC_COMM, KC_RSFT,
-                    TD_GUI , KC_LCTL, KC_LALT, SP_L1  , KC_ENT ,    SP_L1  , KC_SPC , KC_RCTL, KC_RALT, KC_RGUI
 )
 };
 
 
 const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][2] = {
     [0] = { ENCODER_CCW_CW(KC_BRID, KC_BRIU), ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
-    [1] = { ENCODER_CCW_CW(SS_T_DN, SS_T_UP), ENCODER_CCW_CW(OFF_T_DN, OFF_T_UP) },
-    [2] = { ENCODER_CCW_CW(DLY_DN, DLY_UP),   ENCODER_CCW_CW(DLY_DN, DLY_UP) },
-    [3] = { ENCODER_CCW_CW(SPD_DN, SPD_UP),   ENCODER_CCW_CW(SPD_DN, SPD_UP) },
-    [4] = { ENCODER_CCW_CW(KC_BRID, KC_BRIU), ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
+    [1] = { ENCODER_CCW_CW(KC_BRID, KC_BRIU), ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
+    [2] = { ENCODER_CCW_CW(SS_T_DN, SS_T_UP), ENCODER_CCW_CW(OFF_T_DN, OFF_T_UP) },
+    [3] = { ENCODER_CCW_CW(DLY_DN, DLY_UP),   ENCODER_CCW_CW(DLY_DN, DLY_UP) },
+    [4] = { ENCODER_CCW_CW(SPD_DN, SPD_UP),   ENCODER_CCW_CW(SPD_DN, SPD_UP) },
     [5] = { ENCODER_CCW_CW(KC_BRID, KC_BRIU), ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
 };
 
