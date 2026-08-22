@@ -4,12 +4,12 @@ This file contains critical context and rules for agents working on this QMK fir
 
 ## Build Instructions
 - Always compile the firmware for the KB2040 MCU.
-- **Left Side:** `qmk compile -kb sofle/rev1 -km hp_km -e CONVERT_TO=kb2040 -e EXTRAFLAGS="-DIS_LEFT_SIDE" -e TARGET=sofle_rev1_hp_km_left`
-- **Right Side:** `qmk compile -kb sofle/rev1 -km hp_km -e CONVERT_TO=kb2040 -e EXTRAFLAGS="-DIS_RIGHT_SIDE" -e TARGET=sofle_rev1_hp_km_right`
-- **Testing Tip:** When making rapid changes to UI or logic, you only need to compile and flash the **Left Side** to test the change. You do not need to compile both sides every time.
+- **Left Side Compilation (ONLY COMPILE THIS):**
+  `qmk compile -kb sofle/rev1 -km 34_key -e CONVERT_TO=kb2040 -e EXTRAFLAGS="-DIS_LEFT_SIDE" -e TARGET=sofle_rev1_34_key_left`
+- **STRICT RULE - DO NOT COMPILE RIGHT SIDE:** You must **ONLY** compile the **Left Side**. Never compile or run commands for the Right Side unless the user explicitly asks for it in the chat prompt.
 - **Automation (Hooks):** The exact Left Side compilation command above is whitelisted via Antigravity lifecycle hooks.
   - `.agents/hooks.json` intercepts all `run_command` tool calls and pipes them to `.agents/allow_compile.py`.
-  - `.agents/allow_compile.py` parses the requested shell command. If it perfectly matches the Left Side compile command, it returns `{"decision": "allow"}` to bypass the terminal prompt. For all other commands, it returns `{"decision": "ask"}` to safely prompt the user.
+  - `.agents/allow_compile.py` parses the requested shell command. If it perfectly matches the Left Side compile command, it returns `{"decision": "allow"}` to bypass the terminal prompt.
   - As an agent, you can execute the left-side compile command as a background task without ever prompting the user for permission.
 - **Connectivity Modes:** Thanks to the RP2040 (KB2040) native hardware USB detection, the firmware dynamically detects master/slave roles automatically without extra flags. It seamlessly supports three configurations:
   - **Mode 1:** Left connected via USB to host, Right connected to Left via TRRS (Standard split behavior).
@@ -18,7 +18,7 @@ This file contains critical context and rules for agents working on this QMK fir
 
 ## Quantum Painter & OLED Font Guidelines
 - **Font Limit (`QUANTUM_PAINTER_NUM_FONTS`):** The number of loaded fonts is hardcoded in `config.h`. If you load a new font via `qp_load_font_mem()` and the screen goes completely blank/white, it means the font pointer returned NULL because you exceeded this limit. Always increment `QUANTUM_PAINTER_NUM_FONTS` when adding new fonts to fix this!
-- **Font Sources (`fonts_dump/`):** There are several raw `.ttf` and `.otf` source fonts stored in the `keyboards/sofle/rev1/keymaps/hp_km/fonts_dump/` folder. If existing fonts have rendering issues at certain sizes, you can use these source files to generate new fonts and sizes.
+- **Font Sources (`fonts_dump/`):** There are several raw `.ttf` and `.otf` source fonts stored in the `keyboards/sofle/rev1/keymaps/34_key/fonts_dump/` folder. If existing fonts have rendering issues at certain sizes, you can use these source files to generate new fonts and sizes.
 - **Font Generation (`mono2`):** When generating fonts for this monochrome OLED, use `qmk painter-make-font-image -a` (no anti-aliasing) and convert to `mono2`. Monospace or dedicated pixel fonts (like `modernpixels` or `SFMono`) often look best at small sizes (e.g., 16px).
 - **Color Inversion:** To display inverted text (e.g. black text on a white background), first draw a white background using `qp_rect(display, x, y, width, height, 0, 0, 255, true);`, then draw the text over it using `qp_drawtext_recolor(display, x, y, font, "Text", 0, 0, 0, 0, 0, 255);`.
 

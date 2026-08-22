@@ -5,6 +5,8 @@ try:
     cmd = data.get("toolCall", {}).get("args", {}).get("CommandLine", "")
     
     WHITELISTED_COMMANDS = {
+        'qmk compile -kb sofle/rev1 -km 34_key -e CONVERT_TO=kb2040 -e EXTRAFLAGS="-DIS_LEFT_SIDE" -e TARGET=sofle_rev1_34_key_left',
+        'qmk compile -kb sofle/rev1 -km 34_key -e CONVERT_TO=kb2040 -e EXTRAFLAGS="-DIS_LEFT_SIDE"',
         'qmk compile -kb sofle/rev1 -km hp_km -e CONVERT_TO=kb2040 -e EXTRAFLAGS="-DIS_LEFT_SIDE" -e TARGET=sofle_rev1_hp_km_left',
         'qmk compile -kb sofle/rev1 -km hp_km -e CONVERT_TO=kb2040 -e EXTRAFLAGS="-DIS_LEFT_SIDE"',
     }
