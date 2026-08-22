@@ -48,6 +48,7 @@
 #define SPD_TOG (QK_USER + 12)     // Mod: Toggle between 5-step and 2-step speed increments
 #define SCR_TOG (QK_USER + 13)     // Mod: Toggle scroll speed
 #define ONE_HND (QK_USER + 18)     // Toggle One-Handed Mode
+#define STRD_TG (QK_USER + 19)     // Toggle Sturdy Layout
 #define TD_GUI  TD(0)
 
 // 3. Tap Dance Setup
@@ -267,6 +268,33 @@ void keyboard_post_init_user(void) {
     key_combos_keys[3][2] = COMBO_END;
     key_combos[3].keys = key_combos_keys[3];
     key_combos[3].keycode = ONE_HND;
+
+    // Left-hand combo to toggle Sturdy Layer (A + G on Base / S + Y on Sturdy)
+    key_combos_keys[4][0] = KC_A;
+    key_combos_keys[4][1] = KC_G;
+    key_combos_keys[4][2] = COMBO_END;
+    key_combos[4].keys = key_combos_keys[4];
+    key_combos[4].keycode = STRD_TG;
+
+    key_combos_keys[5][0] = KC_S;
+    key_combos_keys[5][1] = KC_Y;
+    key_combos_keys[5][2] = COMBO_END;
+    key_combos[5].keys = key_combos_keys[5];
+    key_combos[5].keycode = STRD_TG;
+
+    // Parity combo: One-Handed Mode on Sturdy (V + P)
+    key_combos_keys[6][0] = KC_V;
+    key_combos_keys[6][1] = KC_P;
+    key_combos_keys[6][2] = COMBO_END;
+    key_combos[6].keys = key_combos_keys[6];
+    key_combos[6].keycode = ONE_HND;
+
+    // Parity combo: Mouse Mode on Sturdy (N + A)
+    key_combos_keys[7][0] = KC_N;
+    key_combos_keys[7][1] = KC_A;
+    key_combos_keys[7][2] = COMBO_END;
+    key_combos[7].keys = key_combos_keys[7];
+    key_combos[7].keycode = TG(3);
 }
 
 
@@ -384,6 +412,17 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
 
     switch (keycode) {
+        case STRD_TG:
+            if (record->event.pressed) {
+                if (default_layer_state & (1UL << 5)) {
+                    default_layer_set(1UL << 0);
+                } else {
+                    default_layer_set(1UL << 5);
+                }
+                extern void print_status_wpm(void);
+                print_status_wpm();
+            }
+            return false;
         case ONE_HND:
             if (record->event.pressed) {
                 one_handed_mode_enabled = !one_handed_mode_enabled;
@@ -622,6 +661,15 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   KC_BSPC, KC_SCLN, KC_L   , KC_K   , KC_J   , KC_H   ,                      KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
   KC_ENT , KC_SLSH, KC_DOT , KC_COMM, KC_M   , KC_N   , KC_MUTE,    XXXXXXX, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
                     TD_GUI , KC_LCTL, KC_LALT, SP_L1  , KC_ENT ,    KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS
+),
+
+// Layer 5: Sturdy Layout (by Oxey)
+[5] = LAYOUT(
+  KC_GRV , KC_1   , KC_2   , KC_3   , KC_4   , KC_5   ,                      KC_6   , KC_7   , KC_8   , KC_9   , KC_0   , KC_MINS,
+  KC_TAB , KC_V   , KC_M   , KC_L   , KC_C   , KC_P   ,                      KC_X   , KC_F   , KC_O   , KC_U   , KC_J   , TG(3)  ,
+  KC_ESC , KC_S   , KC_T   , KC_R   , KC_D   , KC_Y   ,                      KC_DOT , KC_N   , KC_A   , KC_E   , KC_I   , KC_SLSH,
+  KC_LSFT, KC_Z   , KC_K   , KC_Q   , KC_G   , KC_W   , KC_MUTE,    XXXXXXX, KC_B   , KC_H   , KC_QUOT, KC_SCLN, KC_COMM, KC_RSFT,
+                    TD_GUI , KC_LCTL, KC_LALT, SP_L1  , KC_ENT ,    SP_L1  , KC_SPC , KC_RCTL, KC_RALT, KC_RGUI
 )
 };
 
@@ -632,6 +680,7 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][2] = {
     [2] = { ENCODER_CCW_CW(DLY_DN, DLY_UP),   ENCODER_CCW_CW(DLY_DN, DLY_UP) },
     [3] = { ENCODER_CCW_CW(SPD_DN, SPD_UP),   ENCODER_CCW_CW(SPD_DN, SPD_UP) },
     [4] = { ENCODER_CCW_CW(KC_BRID, KC_BRIU), ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
+    [5] = { ENCODER_CCW_CW(KC_BRID, KC_BRIU), ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
 };
 
 // clang-format on

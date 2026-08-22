@@ -467,7 +467,7 @@ static void print_status_wpm(void) {
     // NORMAL SCREEN
     qp_clear(display);
 
-    uint8_t layer = get_highest_layer(layer_state);
+    uint8_t layer = layer_state ? get_highest_layer(layer_state) : get_highest_layer(default_layer_state);
     uint8_t current_wpm = get_current_wpm();
 
             // Top: Layer (Rubik 48)
@@ -477,6 +477,7 @@ static void print_status_wpm(void) {
             else if (layer == 0) layer_str = "0";
             else if (layer == 1) layer_str = "1";
             else if (layer == 2) layer_str = "2";
+            else if (layer == 5) layer_str = "5";
             else layer_str = "+";
 
             int16_t lw = qp_textwidth(rubik_48_font, layer_str);
@@ -623,7 +624,7 @@ void housekeeping_task_user(void) {
         static uint8_t prev_synced_wpm = 255;
         static uint8_t prev_synced_override = 255;
 
-        uint8_t cur_layer = get_highest_layer(layer_state);
+        uint8_t cur_layer = layer_state ? get_highest_layer(layer_state) : get_highest_layer(default_layer_state);
         uint8_t cur_wpm = get_current_wpm();
         uint8_t cur_override = slave_oled_sync.display_override;
 
@@ -673,7 +674,8 @@ void housekeeping_task_user(void) {
 
     // --- MOU mode: show on both sides (override = 1) ---
     // Skip screensaver/timeout on mouse layer (Layer 3) - user is actively mousing
-    if (get_highest_layer(layer_state) == 3) {
+    uint8_t active_layer = layer_state ? get_highest_layer(layer_state) : get_highest_layer(default_layer_state);
+    if (active_layer == 3) {
         last_activity_timer = timer_read32();
         if (is_screen_off) {
             is_screen_off = false;
@@ -839,7 +841,7 @@ void housekeeping_task_user(void) {
     }
 
     uint8_t current_wpm = get_current_wpm();
-    uint8_t current_layer = get_highest_layer(layer_state);
+    uint8_t current_layer = layer_state ? get_highest_layer(layer_state) : get_highest_layer(default_layer_state);
 
     if (current_wpm != last_wpm || current_layer != last_layer) {
         if (timer_elapsed32(last_draw) > 100) {
