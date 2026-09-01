@@ -230,6 +230,12 @@ void keyboard_post_init_user(void) {
     }
     dynamic_string_delay = user_config.string_delay;
 
+#ifdef RGBLIGHT_ENABLE
+    void update_rgb_indicators(void);
+    rgblight_enable_noeeprom();
+    update_rgb_indicators();
+#endif
+
     qp_setup_oled();
     tap_dance_action_t action = ACTION_TAP_DANCE_FN_ADVANCED(NULL, gui_lead_finished, gui_lead_reset);
     tap_dance_actions[TD_GUI_LEADER] = action;
@@ -351,6 +357,25 @@ void matrix_scan_user(void) {
         extern void print_status_wpm(void);
         print_status_wpm();
     }
+
+#ifdef RGBLIGHT_ENABLE
+    extern bool leader_is_flashing;
+    extern uint32_t leader_flash_timer;
+    extern bool leader_flash_toggle;
+    if (leader_is_flashing) {
+        if (timer_elapsed32(leader_flash_timer) > 150) {
+            leader_flash_timer = timer_read32();
+            leader_flash_toggle = !leader_flash_toggle;
+            if (leader_flash_toggle) {
+                rgblight_setrgb_at(255, 0, 0, 0); // Left Red
+                rgblight_setrgb_at(0, 0, 255, 1); // Right Blue
+            } else {
+                rgblight_setrgb_at(0, 0, 255, 0); // Left Blue
+                rgblight_setrgb_at(255, 0, 0, 1); // Right Red
+            }
+        }
+    }
+#endif
 }
 
 // Force correct handedness for split keyboard regardless of which side is plugged into USB
@@ -711,14 +736,80 @@ uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) {
 }
 #endif
 
+bool leader_is_flashing = false;
+uint32_t leader_flash_timer = 0;
+bool leader_flash_toggle = false;
+
+void update_rgb_indicators_state(layer_state_t state, layer_state_t def_state) {
+#ifdef RGBLIGHT_ENABLE
+    if (leader_is_flashing) {
+        return;
+    }
+
+    uint8_t active_layer = get_highest_layer(state);
+    uint8_t default_layer = get_highest_layer(def_state);
+
+    if (active_layer == 4) {
+        // Layer 4: Mouse Mode -> Flashing Red
+        rgblight_mode_noeeprom(RGBLIGHT_MODE_ALTERNATING);
+        rgblight_sethsv_noeeprom(HSV_RED);
+    } else if (active_layer == 3) {
+        // Layer 3: Media & Boot -> Twinkle
+        rgblight_mode_noeeprom(RGBLIGHT_MODE_TWINKLE);
+        rgblight_sethsv_noeeprom(HSV_GOLDENROD);
+    } else if (active_layer == 2) {
+        // Layer 2: Nav & Editing -> Rainbow
+        rgblight_mode_noeeprom(RGBLIGHT_MODE_RAINBOW_MOOD);
+    } else if (active_layer == 5) {
+        // Layer 5: One-Handed Reverse -> Orange
+        rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
+        rgblight_sethsv_noeeprom(HSV_ORANGE);
+    } else if (default_layer == 1 || active_layer == 1) {
+        // Layer 1: Sturdy Layout -> Breathing Green
+        rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING);
+        rgblight_sethsv_noeeprom(HSV_GREEN);
+    } else {
+        // Layer 0: Base QWERTY -> Static Blue
+        rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
+        rgblight_sethsv_noeeprom(HSV_BLUE);
+    }
+#endif
+}
+
+void update_rgb_indicators(void) {
+    update_rgb_indicators_state(layer_state, default_layer_state);
+}
+
+layer_state_t layer_state_set_user(layer_state_t state) {
+    update_rgb_indicators_state(state, default_layer_state);
+    return state;
+}
+
+layer_state_t default_layer_state_set_user(layer_state_t state) {
+    update_rgb_indicators_state(layer_state, state);
+    return state;
+}
+
 void leader_start_user(void) {
     extern void oled_set_leader_state(bool active);
     oled_set_leader_state(true);
+#ifdef RGBLIGHT_ENABLE
+    leader_is_flashing = true;
+    leader_flash_timer = timer_read32();
+    leader_flash_toggle = true;
+    rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
+    rgblight_setrgb_at(255, 0, 0, 0); // Left Red
+    rgblight_setrgb_at(0, 0, 255, 1); // Right Blue
+#endif
 }
 
 void leader_end_user(void) {
     extern void oled_set_leader_state(bool active);
     oled_set_leader_state(false);
+#ifdef RGBLIGHT_ENABLE
+    leader_is_flashing = false;
+    update_rgb_indicators();
+#endif
 
     if (leader_sequence_one_key(KC_A)) {
         SEND_STRING_DELAY("bravewater123@", dynamic_string_delay);
