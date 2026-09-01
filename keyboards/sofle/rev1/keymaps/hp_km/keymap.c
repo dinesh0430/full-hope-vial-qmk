@@ -1,5 +1,8 @@
 #include "keycodes.h"
 #include QMK_KEYBOARD_H
+#ifdef QMK_SETTINGS_ENABLE
+#include "qmk_settings.h"
+#endif
 #include "oled_hope.c"
 
 // 1. Setup Aliases (<=7 chars)
@@ -243,6 +246,10 @@ void keyboard_post_init_user(void) {
     // Hijack Vial's first combo in RAM to hardcode J+K -> TG(4)
     extern combo_t key_combos[];
     extern uint16_t key_combos_keys[][5];
+
+#ifdef QMK_SETTINGS_ENABLE
+    QS.combo_term = COMBO_TERM;
+#endif
 
     key_combos_keys[0][0] = KC_J;
     key_combos_keys[0][1] = KC_K;
