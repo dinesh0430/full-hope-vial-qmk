@@ -1,5 +1,9 @@
 *fonts_dump*
 *unused*
+keyboards/sofle/rev1/keymaps/hp_km/resources/
+keyboards/sofle/rev1/keymaps/hp_km/*.py
+!keyboards/sofle/rev1/keymaps/hp_km/gen_nerd.py
+keyboards/sofle/rev1/keymaps/hp_km/fonts/*.png
 
 # Junk files
 *.bak

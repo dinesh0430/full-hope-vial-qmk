@@ -52,14 +52,55 @@
 #define SCR_TOG (QK_USER + 13)     // Mod: Toggle scroll speed
 #define ONE_HND (QK_USER + 18)     // Toggle One-Handed Mode
 #define STRD_TG (QK_USER + 19)     // Toggle Sturdy Layout
+#define LAY_34T (QK_USER + 20)     // Toggle 34-Key Mode
+#define CY_FWD  (QK_USER + 21)     // Cyclotab: Alt+Tab forward
+#define CY_REV  (QK_USER + 22)     // Cyclotab: Shift+Alt+Tab reverse
 #define TD_GUI  TD(0)
+
+// 34-Key Bottom Row Mods (QWERTY)
+#define BM_Z    LSFT_T(KC_Z)
+#define BM_X    LALT_T(KC_X)
+#define BM_C    LCTL_T(KC_C)
+#define BM_V    LGUI_T(KC_V)
+#define BM_M    RGUI_T(KC_M)
+#define BM_COM  RCTL_T(KC_COMM)
+#define BM_DOT  LALT_T(KC_DOT)
+#define BM_SLS  RSFT_T(KC_SLSH)
+
+// 34-Key Bottom Row Mods (Sturdy)
+#define SB_Z    LSFT_T(KC_Z)
+#define SB_K    LALT_T(KC_K)
+#define SB_Q    LCTL_T(KC_Q)
+#define SB_G    LGUI_T(KC_G)
+#define SB_H    RGUI_T(KC_H)
+#define SB_QOT  RCTL_T(KC_QUOT)
+#define SB_SCL  LALT_T(KC_SCLN)
+#define SB_COM  RSFT_T(KC_COMM)
+
+// 34-Key Dual-Role Thumbs
+#define NAV_BSP TD(TD_NAV_BSP)
+#define NUM_ENT LT(9, KC_ENT)
+#define SYM_ENT LT(10, KC_ENT)
+#define FUN_SPC LT(4, KC_SPC)
+
+// Tap dance & Mod-taps from 34-key
+#define TP_CTCS TD(TD_CTL_CS)
+#define SFT_UND TD(TD_SFT_UND)
+#define SFT_ESC RSFT_T(KC_ESC)
+#define CT_UNDO LCTL(KC_Z)
+#define CT_CUT  LCTL(KC_X)
+#define CT_COPY LCTL(KC_C)
+#define CT_PSTE LCTL(KC_V)
 
 // 3. Tap Dance Setup
 enum {
     TD_GUI_LEADER = 0,
     TD_ACL,
     TD_BTN,
-    TD_SCLN_INV
+    TD_SCLN_INV,
+    TD_CTL_CS,
+    TD_SFT_UND,
+    TD_NAV_BSP
 };
 
 extern tap_dance_action_t tap_dance_actions[];
@@ -200,6 +241,111 @@ void scln_inv_reset(tap_dance_state_t *state, void *user_data) {
     td_scln_inv_state.state = 0;
 }
 
+static td_state_t td_ctl_cs_state  = { .is_press_action = true, .state = 0 };
+static td_state_t td_sft_und_state = { .is_press_action = true, .state = 0 };
+
+void ctl_cs_finished(tap_dance_state_t *state, void *user_data) {
+    td_ctl_cs_state.state = cur_dance(state);
+    switch (td_ctl_cs_state.state) {
+        case SINGLE_TAP:
+            register_code(KC_ESC);
+            break;
+        case SINGLE_HOLD:
+            register_code(KC_LCTL);
+            break;
+        case DOUBLE_TAP:
+        case DOUBLE_HOLD:
+            register_code(KC_LCTL);
+            register_code(KC_LSFT);
+            break;
+    }
+}
+
+void ctl_cs_reset(tap_dance_state_t *state, void *user_data) {
+    switch (td_ctl_cs_state.state) {
+        case SINGLE_TAP:
+            unregister_code(KC_ESC);
+            break;
+        case SINGLE_HOLD:
+            unregister_code(KC_LCTL);
+            break;
+        case DOUBLE_TAP:
+        case DOUBLE_HOLD:
+            unregister_code(KC_LSFT);
+            unregister_code(KC_LCTL);
+            break;
+    }
+    td_ctl_cs_state.state = 0;
+}
+
+void sft_und_finished(tap_dance_state_t *state, void *user_data) {
+    td_sft_und_state.state = cur_dance(state);
+    switch (td_sft_und_state.state) {
+        case SINGLE_TAP:
+            register_code16(KC_UNDS);
+            break;
+        case SINGLE_HOLD:
+        case DOUBLE_TAP:
+        case DOUBLE_HOLD:
+            register_code(KC_LSFT);
+            break;
+    }
+}
+
+void sft_und_reset(tap_dance_state_t *state, void *user_data) {
+    switch (td_sft_und_state.state) {
+        case SINGLE_TAP:
+            unregister_code16(KC_UNDS);
+            break;
+        case SINGLE_HOLD:
+        case DOUBLE_TAP:
+        case DOUBLE_HOLD:
+            unregister_code(KC_LSFT);
+            break;
+    }
+    td_sft_und_state.state = 0;
+}
+
+static td_state_t td_nav_bsp_state = { .is_press_action = true, .state = 0 };
+
+void nav_bsp_finished(tap_dance_state_t *state, void *user_data) {
+    td_nav_bsp_state.state = cur_dance(state);
+    switch (td_nav_bsp_state.state) {
+        case SINGLE_TAP:
+            register_code(KC_BSPC);
+            break;
+        case SINGLE_HOLD:
+            register_code(KC_LSFT);
+            break;
+        case DOUBLE_TAP:
+            register_code(KC_LCTL);
+            register_code(KC_BSPC);
+            break;
+        case DOUBLE_HOLD:
+            layer_on(8);
+            break;
+    }
+}
+
+void nav_bsp_reset(tap_dance_state_t *state, void *user_data) {
+    switch (td_nav_bsp_state.state) {
+        case SINGLE_TAP:
+            unregister_code(KC_BSPC);
+            break;
+        case SINGLE_HOLD:
+            unregister_code(KC_LSFT);
+            break;
+        case DOUBLE_TAP:
+            unregister_code(KC_BSPC);
+            unregister_code(KC_LCTL);
+            break;
+        case DOUBLE_HOLD:
+            layer_off(8);
+            break;
+    }
+    td_nav_bsp_state.state = 0;
+}
+
 typedef union {
     uint32_t raw;
     struct {
@@ -249,12 +395,25 @@ void keyboard_post_init_user(void) {
     tap_dance_action_t action_scln_inv = ACTION_TAP_DANCE_FN_ADVANCED(NULL, scln_inv_finished, scln_inv_reset);
     tap_dance_actions[TD_SCLN_INV] = action_scln_inv;
 
+    tap_dance_action_t action_ctl_cs = ACTION_TAP_DANCE_FN_ADVANCED(NULL, ctl_cs_finished, ctl_cs_reset);
+    tap_dance_actions[TD_CTL_CS] = action_ctl_cs;
+
+    tap_dance_action_t action_sft_und = ACTION_TAP_DANCE_FN_ADVANCED(NULL, sft_und_finished, sft_und_reset);
+    tap_dance_actions[TD_SFT_UND] = action_sft_und;
+
+    tap_dance_action_t action_nav_bsp = ACTION_TAP_DANCE_FN_ADVANCED(NULL, nav_bsp_finished, nav_bsp_reset);
+    tap_dance_actions[TD_NAV_BSP] = action_nav_bsp;
+
     // Hijack Vial's first combo in RAM to hardcode J+K -> TG(4)
     extern combo_t key_combos[];
     extern uint16_t key_combos_keys[][5];
 
 #ifdef QMK_SETTINGS_ENABLE
     QS.combo_term = COMBO_TERM;
+    QS.tapping_v2 |= (1 << QS_tapping_permissive_hold_bit) |
+                     (1 << QS_tapping_chordal_hold_bit);
+    QS.flow_tap_term = 150;
+    QS.quick_tap_term = 0;
 #endif
 
     key_combos_keys[0][0] = KC_J;
@@ -308,6 +467,171 @@ void keyboard_post_init_user(void) {
     key_combos_keys[7][2] = COMBO_END;
     key_combos[7].keys = key_combos_keys[7];
     key_combos[7].keycode = TG(4);
+
+    // 34-Key Mode Toggle combo: Z + X + C (QWERTY)
+    key_combos_keys[8][0] = KC_Z;
+    key_combos_keys[8][1] = KC_X;
+    key_combos_keys[8][2] = KC_C;
+    key_combos_keys[8][3] = COMBO_END;
+    key_combos[8].keys = key_combos_keys[8];
+    key_combos[8].keycode = LAY_34T;
+
+    // Parity combo: 34-Key Mode Toggle on Sturdy (Z + K + Q)
+    key_combos_keys[9][0] = KC_Z;
+    key_combos_keys[9][1] = KC_K;
+    key_combos_keys[9][2] = KC_Q;
+    key_combos_keys[9][3] = COMBO_END;
+    key_combos[9].keys = key_combos_keys[9];
+    key_combos[9].keycode = LAY_34T;
+
+    // C + V combo -> Backspace (QWERTY)
+    key_combos_keys[10][0] = KC_C;
+    key_combos_keys[10][1] = KC_V;
+    key_combos_keys[10][2] = COMBO_END;
+    key_combos[10].keys = key_combos_keys[10];
+    key_combos[10].keycode = KC_BSPC;
+
+    // BM_C + BM_V combo -> Backspace (34_qwerty explicit fallback)
+    key_combos_keys[11][0] = BM_C;
+    key_combos_keys[11][1] = BM_V;
+    key_combos_keys[11][2] = COMBO_END;
+    key_combos[11].keys = key_combos_keys[11];
+    key_combos[11].keycode = KC_BSPC;
+
+    // Q + G combo -> Backspace (Sturdy parity)
+    key_combos_keys[12][0] = KC_Q;
+    key_combos_keys[12][1] = KC_G;
+    key_combos_keys[12][2] = COMBO_END;
+    key_combos[12].keys = key_combos_keys[12];
+    key_combos[12].keycode = KC_BSPC;
+
+    // SB_Q + SB_G combo -> Backspace (34_sturdy explicit fallback)
+    key_combos_keys[13][0] = SB_Q;
+    key_combos_keys[13][1] = SB_G;
+    key_combos_keys[13][2] = COMBO_END;
+    key_combos[13].keys = key_combos_keys[13];
+    key_combos[13].keycode = KC_BSPC;
+
+    // Q + W combo -> Escape (QWERTY)
+    key_combos_keys[14][0] = KC_Q;
+    key_combos_keys[14][1] = KC_W;
+    key_combos_keys[14][2] = COMBO_END;
+    key_combos[14].keys = key_combos_keys[14];
+    key_combos[14].keycode = KC_ESC;
+
+    // V + M combo -> Escape (Sturdy parity)
+    key_combos_keys[15][0] = KC_V;
+    key_combos_keys[15][1] = KC_M;
+    key_combos_keys[15][2] = COMBO_END;
+    key_combos[15].keys = key_combos_keys[15];
+    key_combos[15].keycode = KC_ESC;
+
+    // M + , combo -> Enter (QWERTY)
+    key_combos_keys[16][0] = KC_M;
+    key_combos_keys[16][1] = KC_COMM;
+    key_combos_keys[16][2] = COMBO_END;
+    key_combos[16].keys = key_combos_keys[16];
+    key_combos[16].keycode = KC_ENT;
+
+    // BM_M + BM_COM combo -> Enter (34_qwerty explicit fallback)
+    key_combos_keys[17][0] = BM_M;
+    key_combos_keys[17][1] = BM_COM;
+    key_combos_keys[17][2] = COMBO_END;
+    key_combos[17].keys = key_combos_keys[17];
+    key_combos[17].keycode = KC_ENT;
+
+    // H + ' combo -> Enter (Sturdy parity)
+    key_combos_keys[18][0] = KC_H;
+    key_combos_keys[18][1] = KC_QUOT;
+    key_combos_keys[18][2] = COMBO_END;
+    key_combos[18].keys = key_combos_keys[18];
+    key_combos[18].keycode = KC_ENT;
+
+    // SB_H + SB_QOT combo -> Enter (34_sturdy explicit fallback)
+    key_combos_keys[19][0] = SB_H;
+    key_combos_keys[19][1] = SB_QOT;
+    key_combos_keys[19][2] = COMBO_END;
+    key_combos[19].keys = key_combos_keys[19];
+    key_combos[19].keycode = KC_ENT;
+
+    // W + E combo -> Cyclotab Forward (QWERTY)
+    key_combos_keys[20][0] = KC_W;
+    key_combos_keys[20][1] = KC_E;
+    key_combos_keys[20][2] = COMBO_END;
+    key_combos[20].keys = key_combos_keys[20];
+    key_combos[20].keycode = CY_FWD;
+
+    // M + L combo -> Cyclotab Forward (Sturdy parity)
+    key_combos_keys[21][0] = KC_M;
+    key_combos_keys[21][1] = KC_L;
+    key_combos_keys[21][2] = COMBO_END;
+    key_combos[21].keys = key_combos_keys[21];
+    key_combos[21].keycode = CY_FWD;
+
+    // Q + E combo -> Cyclotab Reverse (QWERTY)
+    key_combos_keys[22][0] = KC_Q;
+    key_combos_keys[22][1] = KC_E;
+    key_combos_keys[22][2] = COMBO_END;
+    key_combos[22].keys = key_combos_keys[22];
+    key_combos[22].keycode = CY_REV;
+
+    // V + L combo -> Cyclotab Reverse (Sturdy parity)
+    key_combos_keys[23][0] = KC_V;
+    key_combos_keys[23][1] = KC_L;
+    key_combos_keys[23][2] = COMBO_END;
+    key_combos[23].keys = key_combos_keys[23];
+    key_combos[23].keycode = CY_REV;
+}
+
+// =============================================================================
+// Chordal Hold Handedness Map (Opposite Hands Rule)
+// =============================================================================
+const char chordal_hold_layout[MATRIX_ROWS][MATRIX_COLS] PROGMEM = LAYOUT(
+  '*'    , '*'    , '*'    , '*'    , '*'    , '*'    ,                      '*'    , '*'    , '*'    , '*'    , '*'    , '*'    ,
+  '*'    , 'L'    , 'L'    , 'L'    , 'L'    , 'L'    ,                      'R'    , 'R'    , 'R'    , 'R'    , 'R'    , '*'    ,
+  '*'    , 'L'    , 'L'    , 'L'    , 'L'    , 'L'    ,                      'R'    , 'R'    , 'R'    , 'R'    , 'R'    , '*'    ,
+  '*'    , 'L'    , 'L'    , 'L'    , 'L'    , 'L'    , '*'    ,    '*'    , 'R'    , 'R'    , 'R'    , 'R'    , 'R'    , '*'    ,
+                    '*'    , '*'    , '*'    , '*'    , '*'    ,    '*'    , '*'    , '*'    , '*'    , '*'
+);
+
+bool get_hold_on_other_key_press(uint16_t keycode, keyrecord_t *record) {
+    switch (keycode) {
+        case BM_Z:
+        case BM_SLS:
+        case SB_COM:
+            // Shift mods: instant 0ms hold on opposite hand press for fast capitalization!
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool get_chordal_hold(uint16_t tap_hold_keycode, keyrecord_t *tap_hold_record,
+                      uint16_t other_keycode, keyrecord_t *other_record) {
+    switch (tap_hold_keycode) {
+        case BM_C:
+        case SB_Q:
+            if (other_keycode == KC_H) {
+                return false;
+            }
+            break;
+    }
+    return get_chordal_hold_default(tap_hold_record, other_record);
+}
+
+// Reference Layer for Combos: Enables combos on 34-key mod-tap layers to resolve plain alphas cleanly
+uint8_t combo_ref_from_layer(uint8_t layer) {
+    switch (layer) {
+        case 6: // 34_qwerty
+        case 8: // 34_l1
+        case 9: // 34_l2
+        case 10: // 34_l3
+            return 0; // Evaluate against Base QWERTY
+        case 7: // 34_sturdy
+            return 1; // Evaluate against Base Sturdy
+        default:
+            return layer;
+    }
 }
 
 
@@ -332,7 +656,37 @@ bool one_handed_mode_enabled = false;
 static bool one_handed_space_held = false;
 static bool one_handed_space_used = false;
 
+// 6. Cyclotab (Alt+Tab Swapper) Engine
+bool is_cyclotab_active = false;
+uint32_t cyclotab_timer = 0;
+
+void cyclotab_step(bool reverse) {
+    if (!is_cyclotab_active) {
+        is_cyclotab_active = true;
+        register_code(KC_LALT);
+    }
+    if (reverse) {
+        register_code(KC_LSFT);
+    }
+    tap_code(KC_TAB);
+    if (reverse) {
+        unregister_code(KC_LSFT);
+    }
+    cyclotab_timer = timer_read32();
+}
+
+void cyclotab_stop(void) {
+    if (is_cyclotab_active) {
+        unregister_code(KC_LALT);
+        is_cyclotab_active = false;
+    }
+}
+
 void matrix_scan_user(void) {
+    if (is_cyclotab_active && timer_elapsed32(cyclotab_timer) > 1200) {
+        cyclotab_stop();
+    }
+
     if (eeprom_needs_update && timer_elapsed32(eeprom_timer) > 3000) {
         eeprom_needs_update = false;
         user_config_t current_config;
@@ -444,11 +798,81 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
 
 
+    static bool cyclotab_just_stopped = false;
+
+    // Active Cyclotab navigation mode: E cycles forward, W cycles backward
+    if (is_cyclotab_active) {
+        if (keycode == KC_E || keycode == KC_L || keycode == CY_FWD) {
+            if (record->event.pressed) {
+                cyclotab_step(false); // Cycle forward
+            }
+            return false;
+        }
+        if (keycode == KC_W || keycode == KC_M || keycode == CY_REV) {
+            if (record->event.pressed) {
+                cyclotab_step(true); // Cycle backward
+            }
+            return false;
+        }
+        // Any other key press cleanly commits the window without typing into the app!
+        if (record->event.pressed) {
+            cyclotab_stop();
+            cyclotab_just_stopped = true;
+            return false; // Consume press event
+        }
+    }
+
+    // Consume the release event of the key used to commit the window
+    if (cyclotab_just_stopped) {
+        if (!record->event.pressed) {
+            cyclotab_just_stopped = false;
+            return false; // Consume release event
+        }
+    }
+
     switch (keycode) {
+        case CY_FWD:
+            if (record->event.pressed) {
+                cyclotab_step(false);
+            }
+            return false;
+
+        case CY_REV:
+            if (record->event.pressed) {
+                cyclotab_step(true);
+            }
+            return false;
+
+        case LAY_34T:
+            if (record->event.pressed) {
+                uint8_t def = get_highest_layer(default_layer_state);
+                if (def == 0) {
+                    default_layer_set(1UL << 6); // 58 QWERTY -> 34 QWERTY
+                } else if (def == 1) {
+                    default_layer_set(1UL << 7); // 58 Sturdy -> 34 Sturdy
+                } else if (def == 6) {
+                    default_layer_set(1UL << 0); // 34 QWERTY -> 58 QWERTY
+                } else if (def == 7) {
+                    default_layer_set(1UL << 1); // 34 Sturdy -> 58 Sturdy
+                } else {
+                    default_layer_set(1UL << 0);
+                }
+                extern void print_status_wpm(void);
+                print_status_wpm();
+            }
+            return false;
+
         case STRD_TG:
             if (record->event.pressed) {
-                if (default_layer_state & (1UL << 1)) {
-                    default_layer_set(1UL << 0);
+                uint8_t def = get_highest_layer(default_layer_state);
+                if (def == 0) {
+                    default_layer_set(1UL << 1); // 58 QWERTY -> 58 Sturdy
+                } else if (def == 1) {
+                    default_layer_set(1UL << 0); // 58 Sturdy -> 58 QWERTY
+                } else if (def == 6) {
+                    default_layer_set(1UL << 7); // 34 QWERTY -> 34 Sturdy
+                } else if (def == 7) {
+                    default_layer_set(1UL << 6); // 34 Sturdy -> 34 QWERTY
                 } else {
                     default_layer_set(1UL << 1);
                 }
@@ -660,7 +1084,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   KC_TAB , KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ,                      KC_Y   , KC_U   , KC_I   , KC_O   , KC_P   , TG(4)  ,
   KC_ESC , KC_A   , KC_S   , KC_D   , KC_F   , KC_G   ,                      KC_H   , KC_J   , KC_K   , KC_L   , KC_SCLN, KC_QUOT,
   KC_LSFT, KC_Z   , KC_X   , KC_C   , KC_V   , KC_B   , KC_MUTE,    XXXXXXX, KC_N   , KC_M   , KC_COMM, KC_DOT , KC_SLSH, KC_RSFT,
-                    TD_GUI , KC_LCTL, KC_LALT, SP_L1  , KC_ENT ,    SP_L1  , KC_SPC , KC_RCTL, KC_RALT, KC_RGUI
+                    TD_GUI , KC_LCTL, KC_LALT, SP_L1  , KC_ENT ,    SP_L1  , KC_SPC , KC_RCTL, KC_LALT, KC_RGUI
 ),
 
 // Layer 1: Sturdy Layout (by Oxey)
@@ -669,7 +1093,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   KC_TAB , KC_V   , KC_M   , KC_L   , KC_C   , KC_P   ,                      KC_X   , KC_F   , KC_O   , KC_U   , KC_J   , TG(4)  ,
   KC_ESC , KC_S   , KC_T   , KC_R   , KC_D   , KC_Y   ,                      KC_DOT , KC_N   , KC_A   , KC_E   , KC_I   , KC_SLSH,
   KC_LSFT, KC_Z   , KC_K   , KC_Q   , KC_G   , KC_W   , KC_MUTE,    XXXXXXX, KC_B   , KC_H   , KC_QUOT, KC_SCLN, KC_COMM, KC_RSFT,
-                    TD_GUI , KC_LCTL, KC_LALT, SP_L1  , KC_ENT ,    SP_L1  , KC_SPC , KC_RCTL, KC_RALT, KC_RGUI
+                    TD_GUI , KC_LCTL, KC_LALT, SP_L1  , KC_ENT ,    SP_L1  , KC_SPC , KC_RCTL, KC_LALT, KC_RGUI
 ),
 
 // Layer 2: Navigation & Editing (Hold Space)
@@ -678,7 +1102,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   KC_PGDN, DEL_LIN, DEL_WRD, KC_HOME, KC_END , CT_ENT ,                      KC_Y   , KC_U   , KC_HOME, KC_END , SF_LPR , SF_RPR ,
   KC_UNDS, CT_SLSH, KC_LEFT, KC_UP  , KC_DOWN, KC_RGHT,                      KC_LEFT, KC_DOWN, KC_UP  , KC_RGHT, SF_LPR , KC_EQL ,
   KC_LSFT, VS_COMM, VS_UNCO, KC_COMM, KC_BSPC, KC_DEL , KC_MUTE,    XXXXXXX, KC_BSPC, KC_DEL , KC_LBRC, KC_RBRC, KC_EQL , KC_BSLS,
-                    TD_GUI , KC_LCTL, KC_LALT, KC_NO  , KC_ENT ,    KC_NO  , KC_SPC , KC_RCTL, KC_RALT, KC_RGUI
+                    TD_GUI , KC_LCTL, KC_LALT, KC_NO  , KC_ENT ,    KC_NO  , KC_SPC , KC_RCTL, KC_LALT, KC_RGUI
 ),
 
 // Layer 3: Media, Config & Bootmagic (Double-tap Hold Space)
@@ -687,7 +1111,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   KC_TAB , KC_F7  , KC_F8  , CT_HOME, CT_END , CS_ENT ,                      KC_Y   , KC_U   , KC_I   , KC_O   , KC_P   , KC_BSPC,
   KC_MINS, QK_LEAD, CT_LEFT, KC_D   , KC_F   , CT_RGHT,                      CT_LEFT, KC_J   , KC_K   , CT_RGHT, KC_SCLN, KC_QUOT,
   KC_LSFT, KC_Z   , KC_X   , ICN_RND, ICON_DN, ICON_UP, KC_MUTE,    XXXXXXX, ICON_DN, ICON_UP, ICN_RND, KC_DOT , KC_SLSH, KC_RSFT,
-                    TD_GUI , KC_LCTL, KC_LALT, KC_NO  , KC_ENT ,    KC_NO  , MO(2)  , KC_RCTL, KC_RALT, KC_RGUI
+                    TD_GUI , KC_LCTL, KC_LALT, KC_NO  , KC_ENT ,    KC_NO  , MO(2)  , KC_RCTL, KC_LALT, KC_RGUI
 ),
 
 // Layer 4: Mouse Mode
@@ -696,7 +1120,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   KC_TAB , KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ,                      SPD_TOG, SCR_TOG, MS_BTN1, MS_BTN2, MS_BTN3, TG(4)  ,
   KC_ESC , KC_A   , KC_S   , KC_D   , KC_F   , KC_G   ,                      MS_LEFT, MS_DOWN, MS_UP  , MS_RGHT, INV_ACL, KC_QUOT,
   KC_LSFT, KC_Z   , KC_X   , KC_C   , KC_V   , KC_B   , KC_MUTE,    XXXXXXX, SCR_TOG, WH_DOWN, WH_UP  , WH_LEFT, WH_RGHT, KC_RSFT,
-                    TD_GUI , KC_LCTL, KC_LALT, KC_TRNS, KC_ENT ,    TP_ACL , TP_BTN , KC_ACL2, KC_RALT, SPD_CYC
+                    TD_GUI , KC_LCTL, KC_LALT, KC_TRNS, KC_ENT ,    TP_ACL , TP_BTN , KC_ACL2, KC_LALT, SPD_CYC
 ),
 
 // Layer 5: One-Handed Reverse (Mirrors right-hand keys on Left half when Space is held; Esc becomes Backspace)
@@ -706,17 +1130,73 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   KC_BSPC, KC_SCLN, KC_L   , KC_K   , KC_J   , KC_H   ,                      KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
   KC_ENT , KC_SLSH, KC_DOT , KC_COMM, KC_M   , KC_N   , KC_MUTE,    XXXXXXX, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
                     TD_GUI , KC_LCTL, KC_LALT, SP_L1  , KC_ENT ,    KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS
+),
+
+#undef  _______
+#define _______ KC_NO
+
+// Layer 6: 34_qwerty (34-Key QWERTY + Bottom Row Mods)
+[6] = LAYOUT(
+  QK_BOOT, _______, _______, _______, _______, _______,                      _______, _______, _______, _______, _______, QK_BOOT,
+  _______, KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ,                      KC_Y   , KC_U   , KC_I   , KC_O   , KC_P   , _______,
+  _______, KC_A   , KC_S   , KC_D   , KC_F   , KC_G   ,                      KC_H   , KC_J   , KC_K   , KC_L   , KC_SCLN, _______,
+  _______, BM_Z   , BM_X   , BM_C   , BM_V   , KC_B   , _______,    _______, KC_N   , BM_M   , BM_COM , BM_DOT , BM_SLS , _______,
+                    _______, _______, _______, NAV_BSP, NUM_ENT,    SYM_ENT, FUN_SPC, _______, _______, _______
+),
+
+// Layer 7: 34_sturdy (34-Key Sturdy + Bottom Row Mods)
+[7] = LAYOUT(
+  QK_BOOT, _______, _______, _______, _______, _______,                      _______, _______, _______, _______, _______, QK_BOOT,
+  _______, KC_V   , KC_M   , KC_L   , KC_C   , KC_P   ,                      KC_X   , KC_F   , KC_O   , KC_U   , KC_J   , _______,
+  _______, KC_S   , KC_T   , KC_R   , KC_D   , KC_Y   ,                      KC_DOT , KC_N   , KC_A   , KC_E   , KC_I   , _______,
+  _______, SB_Z   , SB_K   , SB_Q   , SB_G   , KC_W   , _______,    _______, KC_B   , SB_H   , SB_QOT , SB_SCL , SB_COM , _______,
+                    _______, _______, _______, NAV_BSP, NUM_ENT,    SYM_ENT, FUN_SPC, _______, _______, _______
+),
+
+// Layer 8: 34_l1 (Navigation, Editing & Word Actions)
+[8] = LAYOUT(
+  QK_BOOT, _______, _______, _______, _______, _______,                      _______, _______, _______, _______, _______, QK_BOOT,
+  _______, KC_1   , KC_2   , KC_3   , KC_4   , KC_5   ,                      KC_6   , KC_7   , KC_8   , KC_9   , KC_0   , _______,
+  _______, TP_CTCS, KC_LEFT, KC_UP  , KC_DOWN, KC_RGHT,                      KC_LEFT, KC_DOWN, KC_UP  , KC_RGHT, CW_TOGG, _______,
+  _______, SFT_UND, CT_CUT , CT_COPY, CT_PSTE, DEL_WRD, _______,    _______, KC_BSPC, CY_FWD , KC_ENT , KC_DEL , SFT_ESC, _______,
+                    _______, _______, _______, CY_REV , _______,    KC_ENT , KC_DEL , _______, _______, _______
+),
+
+// Layer 9: 34_l2 (Numbers & Numpad)
+[9] = LAYOUT(
+  QK_BOOT, _______, _______, _______, _______, _______,                      _______, _______, _______, _______, _______, QK_BOOT,
+  _______, KC_EXLM, KC_AT  , KC_HASH, KC_DLR , KC_PERC,                      KC_SLSH, KC_7   , KC_8   , KC_9   , KC_PLUS, _______,
+  _______, KC_CIRC, KC_AMPR, KC_ASTR, KC_EQL , KC_PLUS,                      KC_ASTR, KC_4   , KC_5   , KC_6   , KC_0   , _______,
+  _______, KC_TILD, KC_GRV , KC_MINS, KC_UNDS, KC_PIPE, _______,    _______, KC_MINS, KC_1   , KC_2   , KC_3   , KC_DOT , _______,
+                    _______, _______, _______, KC_BSPC, _______,    KC_EQL , KC_ENT , _______, _______, _______
+),
+
+// Layer 10: 34_l3 (Symbols & Brackets)
+[10] = LAYOUT(
+  QK_BOOT, _______, _______, _______, _______, _______,                      _______, _______, _______, _______, _______, QK_BOOT,
+  _______, KC_LCBR, KC_RCBR, KC_LBRC, KC_RBRC, KC_DLR ,                      KC_GRV , KC_TILD, KC_AMPR, KC_CIRC, KC_EXLM, _______,
+  _______, KC_LPRN, KC_RPRN, KC_LABK, KC_RABK, KC_AT  ,                      KC_COLN, KC_SCLN, KC_QUOT, KC_DQUO, KC_QUES, _______,
+  _______, KC_PIPE, KC_BSLS, KC_SLSH, KC_PERC, KC_HASH, _______,    _______, KC_UNDS, KC_MINS, KC_PLUS, KC_EQL , KC_ASTR, _______,
+                    _______, _______, _______, KC_BSPC, KC_SPC ,    _______, _______, _______, _______, _______
 )
 };
 
+#undef  _______
+#define _______ KC_TRNS
+
 
 const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][2] = {
-    [0] = { ENCODER_CCW_CW(KC_BRID, KC_BRIU), ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
-    [1] = { ENCODER_CCW_CW(KC_BRID, KC_BRIU), ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
-    [2] = { ENCODER_CCW_CW(SS_T_DN, SS_T_UP), ENCODER_CCW_CW(OFF_T_DN, OFF_T_UP) },
-    [3] = { ENCODER_CCW_CW(DLY_DN, DLY_UP),   ENCODER_CCW_CW(DLY_DN, DLY_UP) },
-    [4] = { ENCODER_CCW_CW(SPD_DN, SPD_UP),   ENCODER_CCW_CW(SPD_DN, SPD_UP) },
-    [5] = { ENCODER_CCW_CW(KC_BRID, KC_BRIU), ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
+    [0]  = { ENCODER_CCW_CW(KC_BRID, KC_BRIU), ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
+    [1]  = { ENCODER_CCW_CW(KC_BRID, KC_BRIU), ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
+    [2]  = { ENCODER_CCW_CW(SS_T_DN, SS_T_UP), ENCODER_CCW_CW(OFF_T_DN, OFF_T_UP) },
+    [3]  = { ENCODER_CCW_CW(DLY_DN, DLY_UP),   ENCODER_CCW_CW(DLY_DN, DLY_UP) },
+    [4]  = { ENCODER_CCW_CW(SPD_DN, SPD_UP),   ENCODER_CCW_CW(SPD_DN, SPD_UP) },
+    [5]  = { ENCODER_CCW_CW(KC_BRID, KC_BRIU), ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
+    [6]  = { ENCODER_CCW_CW(KC_VOLD, KC_VOLU), ENCODER_CCW_CW(KC_PGDN, KC_PGUP) },
+    [7]  = { ENCODER_CCW_CW(KC_VOLD, KC_VOLU), ENCODER_CCW_CW(KC_PGDN, KC_PGUP) },
+    [8]  = { ENCODER_CCW_CW(KC_VOLD, KC_VOLU), ENCODER_CCW_CW(KC_PGDN, KC_PGUP) },
+    [9]  = { ENCODER_CCW_CW(KC_VOLD, KC_VOLU), ENCODER_CCW_CW(KC_PGDN, KC_PGUP) },
+    [10] = { ENCODER_CCW_CW(KC_VOLD, KC_VOLU), ENCODER_CCW_CW(KC_PGDN, KC_PGUP) },
 };
 
 // clang-format on
@@ -728,9 +1208,29 @@ uint16_t vial_get_tapping_term(uint16_t keycode, keyrecord_t *record);
 uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case SP_L1:
-            return 170; // Your custom tapping term logic
+            return 170;
+        case NAV_BSP:
+            return 150;
+        case NUM_ENT:
+        case SYM_ENT:
+        case FUN_SPC:
+        case BM_Z:
+        case BM_X:
+        case BM_C:
+        case BM_V:
+        case BM_M:
+        case BM_COM:
+        case BM_DOT:
+        case BM_SLS:
+        case SB_K:
+        case SB_Q:
+        case SB_G:
+        case SB_H:
+        case SB_QOT:
+        case SB_SCL:
+        case SB_COM:
+            return 280;
         default:
-            // Fall back to Vial's dynamic settings and tap-dance configurations
             return vial_get_tapping_term(keycode, record);
     }
 }
@@ -754,7 +1254,7 @@ void update_rgb_indicators_state(layer_state_t state, layer_state_t def_state) {
         rgblight_mode_noeeprom(RGBLIGHT_MODE_ALTERNATING);
         rgblight_sethsv_noeeprom(HSV_RED);
     } else if (active_layer == 3) {
-        // Layer 3: Media & Boot -> Twinkle
+        // Layer 3: Media & Boot -> Twinkle Gold
         rgblight_mode_noeeprom(RGBLIGHT_MODE_TWINKLE);
         rgblight_sethsv_noeeprom(HSV_GOLDENROD);
     } else if (active_layer == 2) {
@@ -764,6 +1264,25 @@ void update_rgb_indicators_state(layer_state_t state, layer_state_t def_state) {
         // Layer 5: One-Handed Reverse -> Orange
         rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
         rgblight_sethsv_noeeprom(HSV_ORANGE);
+    } else if (active_layer == 8) {
+        // Layer 8: 34_l1 (34 Nav) -> Rainbow
+        rgblight_mode_noeeprom(RGBLIGHT_MODE_RAINBOW_MOOD);
+    } else if (active_layer == 9) {
+        // Layer 9: 34_l2 (34 Num) -> Static Gold
+        rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
+        rgblight_sethsv_noeeprom(HSV_GOLD);
+    } else if (active_layer == 10) {
+        // Layer 10: 34_l3 (34 Sym) -> Twinkle Purple
+        rgblight_mode_noeeprom(RGBLIGHT_MODE_TWINKLE);
+        rgblight_sethsv_noeeprom(HSV_PURPLE);
+    } else if (default_layer == 7 || active_layer == 7) {
+        // Layer 7: 34_sturdy -> Breathing Cyan
+        rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING);
+        rgblight_sethsv_noeeprom(HSV_CYAN);
+    } else if (default_layer == 6 || active_layer == 6) {
+        // Layer 6: 34_qwerty -> Static Cyan
+        rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
+        rgblight_sethsv_noeeprom(HSV_CYAN);
     } else if (default_layer == 1 || active_layer == 1) {
         // Layer 1: Sturdy Layout -> Breathing Green
         rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING);

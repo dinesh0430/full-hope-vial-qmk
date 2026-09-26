@@ -25,6 +25,12 @@ VIA_ENABLE = yes
 VIAL_ENABLE = yes
 VIAL_INSECURE = yes
 TAP_DANCE_ENABLE = yes       # Keeps QMK's core Tap Dance engine on
-WPM_ENABLE = yes
+WPM_ENABLE = no
 
-SRC += fonts/rubik_24.qff.c fonts/rubik_48.qff.c fonts/nerd_32.qff.c fonts/modernpixels_24.qff.c fonts/modernpixels_12.qff.c fonts/sfmono_16.qff.c fonts/rubik_16.qff.c
+SRC += fonts/rubik_24.qff.c fonts/rubik_48.qff.c fonts/nerd_32.qff.c fonts/modernpixels_24.qff.c fonts/modernpixels_12.qff.c fonts/sfmono_16.qff.c fonts/rubik_16.qff.c \
+       gfx/doom_fire.qgf.c gfx/wireframe_cube.qgf.c gfx/liquid_metaballs.qgf.c gfx/game_of_life.qgf.c gfx/starfield_warp.qgf.c \
+       gfx/tornado_vortex.qgf.c gfx/hurricane_eye.qgf.c \
+       gfx/warrior_idle.qgf.c gfx/warrior_run.qgf.c gfx/warrior_atk1.qgf.c gfx/warrior_atk2.qgf.c gfx/warrior_guard.qgf.c \
+       gfx/monk_idle.qgf.c gfx/monk_run.qgf.c gfx/monk_heal.qgf.c gfx/monk_effect.qgf.c \
+       gfx/archer_idle.qgf.c gfx/archer_run.qgf.c gfx/archer_shoot.qgf.c \
+       gfx/pawn_idle.qgf.c

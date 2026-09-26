@@ -45,10 +45,10 @@
 // #define VIAL_UNLOCK_COMBO_COLS { 0, 0, 0, 0 }
 
 // Maxed Out Vial Overrides (Thanks to 8MB Flash Storage!)
-#define DYNAMIC_KEYMAP_LAYER_COUNT 8
+#define DYNAMIC_KEYMAP_LAYER_COUNT 12
 #define DYNAMIC_KEYMAP_MACRO_COUNT 32
 #define VIAL_TAP_DANCE_ENTRIES 12
-#define VIAL_COMBO_ENTRIES 16
+#define VIAL_COMBO_ENTRIES 32
 #define COMBO_TERM 30
 
 #define RP2040_BOOTLOADER_DOUBLE_TAP_RESET
@@ -58,11 +58,31 @@
 // // #define CONSOLE_ENABLE      // (Not required: disabled to save USB endpoints and RAM)
 #define DEBUG_MATRIX_SCAN_RATE
 
-#define I2C0_CLOCK_SPEED 1000000
-#define I2C1_CLOCK_SPEED 1000000
+#define I2C0_CLOCK_SPEED 400000
+#define I2C1_CLOCK_SPEED 400000
 #define QUANTUM_PAINTER_NUM_FONTS 7 // 7 active fonts: rubik_24, rubik_48, nerd_32, modernpixels_24, modernpixels_12, sfmono_16, rubik_16
+#define QUANTUM_PAINTER_NUM_IMAGES 28
 
-// #define TAPPING_TERM_PER_KEY   // (Not required unless custom per-key tap terms are needed in C instead of Vial GUI)
+#ifndef TAPPING_TERM_PER_KEY
+#define TAPPING_TERM_PER_KEY
+#endif
+
+// Timeless Bottom Row Mods Support
+#ifndef PERMISSIVE_HOLD
+#define PERMISSIVE_HOLD
+#endif
+#ifndef HOLD_ON_OTHER_KEY_PRESS_PER_KEY
+#define HOLD_ON_OTHER_KEY_PRESS_PER_KEY
+#endif
+#ifndef CHORDAL_HOLD
+#define CHORDAL_HOLD
+#endif
+#ifndef FLOW_TAP_TERM
+#define FLOW_TAP_TERM 150
+#endif
+#ifndef QUICK_TAP_TERM
+#define QUICK_TAP_TERM 0
+#endif
 
 // Disable the Leader timer entirely for stress-free single-key macros
 #define LEADER_NO_TIMEOUT

@@ -13,6 +13,14 @@
 #include "fonts/modernpixels_12.qff.h"
 #include "fonts/sfmono_16.qff.h"
 #include "fonts/rubik_16.qff.h"
+#include "gfx/doom_fire.qgf.h"
+#include "gfx/wireframe_cube.qgf.h"
+#include "gfx/liquid_metaballs.qgf.h"
+#include "gfx/game_of_life.qgf.h"
+#include "gfx/starfield_warp.qgf.h"
+#include "gfx/tornado_vortex.qgf.h"
+#include "gfx/hurricane_eye.qgf.h"
+#include "char_anims.h"
 
 painter_device_t display;
 painter_font_handle_t rubik_24_font;
@@ -23,205 +31,71 @@ painter_font_handle_t modernpixels_12_font;
 painter_font_handle_t sfmono_16_font;
 painter_font_handle_t rubik_16_font;
 
-static const char *nerd_icon_list[] = {
-    "\U000F0973", // 󰥳
-    "\U0000F1FA", // 
-    "\U000F05C0", // 󰗀
-    "\U000F0582", // 󰖂
-    "\U000F0721", // 󰜡
-    "\U000F0519", // 󰔙
-    "\U000F03D2", // 󰏒
-    "\U000F1105", // 󱄅
-    "\U000F02A2", // 󰊢
-    "\U000F0684", // 󰚄
-    "\U0000EE82", // 
-    "\U0000EE7A", // 
-    "\U0000ED43", // 
-    "\U0000EFA7", // 
-    "\U0000F4BC", // 
-    "\U0000F428", // 
-    "\U000F0346", // 󰍆
-    "\U000F0303", // 󰌃
-    "\U000F02DF", // 󰋟
-    "\U000F124F", // 󱉏
-    "\U000F15C6", // 󱗆
-    "\U000F1183", // 󱆃
-    "\U000F08C7", // 󰣇
-    "\U0000F1E9", // 
-    "\U0000EF6D", // 
-    "\U0000F06C", // 
-    "\U0000EF56", // 
-    "\U0000F2D6", // 
-    "\U0000F282", // 
-    "\U0000F0E7", // 
-    "\U0000EE99", // 
-    "\U0000E782", // 
-    "\U0000E7C5", // 
-    "\U0000E893", // 
-    "\U0000E6A4", // 
-    "\U0000E620", // 
-    "\U0000E007", // 
-    "\U000F0451", // 󰑑
-    "\U000F0D7C", // 󰵼
-    "\U000F1510", // 󱔐
-    "\U000F0D72", // 󰵲
-    "\U0000E823", // 
-    "\U0000E806", // 
-    "\U0000E7FA", // 
-    "\U0000E66C", // 
-    "\U0000E666", // 
-    "\U0000F490", // 
-    "\U000F0CD7", // 󰳗
-    "\U000F111B", // 󱄛
-    "\U000F0A08", // 󰨈
-    "\U000F0BAA", // 󰮪
-    "\U000F01E4", // 󰇤
-    "\U000F0816", // 󰠖
-    "\U0000E214", // 
-    "\U0000E26E", // 
-    "\U0000EF10", // 
-    "\U0000EEB0", // 
-    "\U0000F135", // 
-    "\U0000ED1B", // 
-    "\U0000F1AA", // 
-    "\U0000F296", // 
-    "\U0000F299", // 
-    "\U0000F1A9", // 
-    "\U0000EEF8", // 
-    "\U0000E894", // 
-    "\U0000E80D", // 
-    "\U000F1A82", // 󱪂
-    "\U000F1545", // 󱕅
-    "\U000F0421", // 󰐡
-    "\U000F117E", // 󱅾
-    "\U000F08E0", // 󰣠
-    "\U0000EE83", // 
-    "\U0000F1DF", // 
-    "\U0000EEC9", // 
-    "\U0000EDD5", // 
-    "\U0000F17B", // 
-    "\U0000E8DA", // 
-    "\U0000E8D9", // 
-    "\U0000E89F", // 
-    "\U0000E87F", // 
-    "\U0000E873", // 
-    "\U0000E86E", // 
-    "\U0000E7A1", // 
-    "\U0000E872", // 
-    "\U0000E867", // 
-    "\U0000E7A5", // 
-    "\U0000E82A", // 
-    "\U0000E7D2", // 
-    "\U0000E6B5", // 
-    "\U0000EB73", // 
-    "\U0000E661", // 
-    "\U000F137F", // 󱍿
-    "\U000F0967", // 󰥧
-    "\U000F0204", // 󰈄
-    "\U000F086A", // 󰡪
-    "\U000F0674", // 󰙴
-    "\U0000E284", // 
-    "\U0000EDA7", // 
-    "\U0000EF3E", // 
-    "\U0000EE28", // 
-    "\U0000F2D5", // 
-    "\U0000F069", // 
-    "\U0000E805", // 
-    "\U0000E7F4", // 
-    "\U0000E7D7", // 
-    "\U0000E716", // 
-    "\U0000EC10", // 
-    "\U0000F4A1", // 
-    "\U000F0064", // 󰁤
-    "\U0000F337", // 
-    "\U0000EF35", // 
-    "\U0000F209", // 
-    "\U0000E8A5", // 
-    "\U0000E825", // 
-    "\U0000E801", // 
-    "\U0000E79F", // 
-    "\U0000E752", // 
-    "\U0000E701", // 
-    "\U0000E370", // 
-    "\U0000F366", // 
-    "\U0000E28E", // 
-    "\U0000ED28", // 
-    "\U0000F230", // 
-    "\U0000E72A", // 
-    "\U0000F344", // 
-    "\U0000F0A3", // 
-    "\U0000F31D", // 
-    "\U0000ED24", // 
-    "\U000F0CD1", // 󰳑
-    "\U000F047A", // 󰑺
-    "\U000F04C8", // 󰓈
-    "\U0000F2DC", // 
-    "\U000F1950", // 󱥐
-    "\U000F0907", // 󰤇
-    "\U0000EEE6", // 
-    "\U0000F197", // 
-    "\U0000EF50", // 
-    "\U0000F4F5", // 
-    "\U000F0EA4", // 󰺤
-    "\U000F156B", // 󱕫
-    "\U0000F51B", // 
-    "\U000F0787", // 󰞇
-    "\U000F0BC9", // 󰯉
-    "\U0000E721", // 
-    "\U000F15C3", // 󱗃
-    "\U000F0717", // 󰜗
-    "\U000F0DF1", // 󰷱
-    "\U000F0B62", // 󰭢
-    "\U0000EDEC", // 
-    "\U0000EFA0", // 
-    "\U000F0383", // 󰎃
-    "\U000F1303", // 󱌃
-    "\U0000EED5", // 
-    "\U000F0CED", // 󰳭
-    "\U000F02C4", // 󰋄
-    "\U000F0771", // 󰝱
-    "\U000F07E1", // 󰟡
-    "\U0000EDA0", // 
-    "\U0000F27F", // 
-    "\U000F0C93", // 󰲓
-    "\U000F0B90", // 󰮐
-    "\U000F0857", // 󰡗
-    "\U000F0433", // 󰐳
-    "\U000F0A11", // 󰨑
-    "\U000F08B5", // 󰢵
-    "\U000F0B84", // 󰮄
-    "\U000F19A5", // 󱦥
-    "\U0000EEF5", // 
-    "\U000F0820", // 󰠠
-    "\U000F15FC", // 󱗼
-    "\U000F15FF", // 󱗿
-    "\U000F15FE", // 󱗾
-    "\U000F1617", // 󱘗
-    "\U000F18A1", // 󱢡
-    "\U000F08D1", // 󰣑
-    "\U0000F25B", // 
-    "\U000F0A50", // 󰩐
-    "\U000F0A51", // 󰩑
-};
+#define NUM_SCREENSAVERS 7
+painter_image_handle_t screensaver_imgs[NUM_SCREENSAVERS] = {NULL};
+deferred_token screensaver_anim_token = INVALID_DEFERRED_TOKEN;
+static uint8_t current_screensaver_idx = 0;
+static uint32_t screensaver_switch_timer = 0;
 
-#define NUM_ICONS (sizeof(nerd_icon_list) / sizeof(nerd_icon_list[0]))
+static void stop_screensaver_anim_if_running(void) {
+    if (screensaver_anim_token != INVALID_DEFERRED_TOKEN) {
+        qp_stop_animation(screensaver_anim_token);
+        screensaver_anim_token = INVALID_DEFERRED_TOKEN;
+    }
+}
 
+static void start_screensaver_anim(uint8_t idx) {
+    stop_screensaver_anim_if_running();
+    if (idx < NUM_SCREENSAVERS && screensaver_imgs[idx] != NULL) {
+        qp_clear(display);
+        screensaver_anim_token = qp_animate(display, 0, 0, screensaver_imgs[idx]);
+    }
+}
 
+painter_image_handle_t char_anim_imgs[NUM_CHAR_ANIMS] = {NULL};
+deferred_token char_anim_token = INVALID_DEFERRED_TOKEN;
+static uint8_t current_char_anim_idx = 0;
+static uint32_t char_anim_switch_timer = 0;
 
-static uint8_t current_icon_idx = 0;
+static void stop_char_anim_if_running(void) {
+    if (char_anim_token != INVALID_DEFERRED_TOKEN) {
+        qp_stop_animation(char_anim_token);
+        char_anim_token = INVALID_DEFERRED_TOKEN;
+    }
+}
+
+static void start_char_anim(uint8_t idx) {
+    stop_char_anim_if_running();
+    if (idx < NUM_CHAR_ANIMS && char_anim_imgs[idx] != NULL) {
+        // Clear bottom slot only (Y: 68..127)
+        qp_rect(display, 0, 68, 31, 127, 0, 0, 0, true);
+        uint8_t h = char_anim_list[idx].height;
+        uint8_t w = char_anim_list[idx].width;
+        int16_t anim_x = (32 - w) / 2;
+        if (anim_x < 0) anim_x = 0;
+        int16_t anim_y = 68 + (60 - h) / 2;
+        if (anim_y < 68) anim_y = 68;
+        char_anim_token = qp_animate(display, anim_x, anim_y, char_anim_imgs[idx]);
+    }
+}
+
+#include "nerd_icon_list.inc"
+
+static uint16_t current_icon_idx = 0;
 bool is_leader_active = false;
 static uint32_t last_activity_timer = 0;
 bool is_screensaver_active = false;
 bool is_screen_off = false;
 
-static uint8_t shuffled_indices[NUM_ICONS];
+static uint16_t shuffled_indices[NUM_ICONS];
 static bool is_shuffled = false;
+static uint16_t shuffle_deck_pos = 0;
 
 // Display override: 0 = normal (independent pages), 1 = MOU, 2 = LDR
 static uint8_t display_override = 0;
 
 uint32_t screensaver_timeout = 3000;
-uint32_t screenoff_timeout = 30000;
+uint32_t screenoff_timeout = 300000;
 
 /* Data struct synced from master to slave via custom split transaction.
  * 
@@ -243,43 +117,63 @@ typedef struct __attribute__((packed)) {
     uint32_t screensaver_timeout;
     uint32_t screenoff_timeout;
     uint8_t dynamic_string_delay;
+    uint8_t activity_counter;
 } oled_sync_data_t;
 
 // Slave-side copy of synced data
-static oled_sync_data_t slave_oled_sync = {0, false, 0, 0, 0, 3000, 30000, 50};
+static oled_sync_data_t slave_oled_sync = {0, false, 0, 0, 0, 3000, 300000, 50, 0};
 
 static void print_status_wpm(void); // Forward declaration to fix compiler error
 void oled_sync_slave_handler(uint8_t in_buflen, const void* in_data, uint8_t out_buflen, void* out_data); // Forward declaration
 
-static uint8_t get_my_icon_idx(void) {
-    return is_shuffled ? shuffled_indices[current_icon_idx] : current_icon_idx;
+static uint16_t get_my_icon_idx(void) {
+    if (!is_shuffled) {
+        void shuffle_icons(void);
+        shuffle_icons();
+    }
+    return shuffled_indices[shuffle_deck_pos % NUM_ICONS];
 }
 
 
 #define NUM_FALLING_ICONS 4
-#define FALLING_ICON_SPACING 40  // Tighter spacing so more icons fit on screen
+#define FALLING_ICON_SPACING 38  // Tighter spacing so icons flow continuously
 
 typedef struct {
     int16_t y;
     int16_t x;
-    uint8_t icon_idx;
+    uint16_t icon_idx;
 } falling_icon_t;
+
+static uint16_t screensaver_deck_pos = 0;
+static uint16_t get_next_screensaver_icon(void) {
+    if (!is_shuffled) {
+        void shuffle_icons(void);
+        shuffle_icons();
+    }
+    screensaver_deck_pos++;
+    if (screensaver_deck_pos >= NUM_ICONS) {
+        void shuffle_icons(void);
+        shuffle_icons();
+        screensaver_deck_pos = 0;
+    }
+    return shuffled_indices[screensaver_deck_pos % NUM_ICONS];
+}
+
+static bool screensaver_initialized = false;
 
 static void print_screensaver(void) {
     static falling_icon_t icons[NUM_FALLING_ICONS];
-    static bool initialized = false;
 
-    if (!initialized) {
+    if (!screensaver_initialized) {
         for (int i = 0; i < NUM_FALLING_ICONS; i++) {
-            // Space them 64px apart so both are visible on the 128px screen
-            icons[i].y = -32 - (i * FALLING_ICON_SPACING);
-            icons[i].icon_idx = rand() % NUM_ICONS;
+            icons[i].y = i * 36;
+            icons[i].icon_idx = get_next_screensaver_icon();
 
             const char* icon_str = nerd_icon_list[icons[i].icon_idx];
             int16_t iw = qp_textwidth(nerd_32_font, icon_str);
             icons[i].x = (iw < 32) ? ((32 - iw) / 2) : 0;
         }
-        initialized = true;
+        screensaver_initialized = true;
     }
 
     qp_clear(display);
@@ -290,11 +184,11 @@ static void print_screensaver(void) {
 
         icons[i].y += 2; // Fall down by 2 pixels per frame
 
-        // Once it falls completely off the bottom, wrap it around to the top
+        // Once it falls completely off the bottom, wrap it around with a new non-repeating icon
         if (icons[i].y > 128) {
             icons[i].y -= (FALLING_ICON_SPACING * NUM_FALLING_ICONS);
 
-            icons[i].icon_idx = rand() % NUM_ICONS;
+            icons[i].icon_idx = get_next_screensaver_icon();
             icon_str = nerd_icon_list[icons[i].icon_idx];
             int16_t iw = qp_textwidth(nerd_32_font, icon_str);
             icons[i].x = (iw < 32) ? ((32 - iw) / 2) : 0;
@@ -304,6 +198,8 @@ static void print_screensaver(void) {
     qp_flush(display);
 }
 
+static uint8_t master_activity_counter = 0;
+
 void oled_reset_screensaver(void) {
     static bool is_seeded = false;
     if (!is_seeded) {
@@ -311,19 +207,25 @@ void oled_reset_screensaver(void) {
         is_seeded = true;
     }
     last_activity_timer = timer_read32();
+    if (is_keyboard_master()) {
+        master_activity_counter++;
+    }
     if (is_screen_off) {
         is_screen_off = false;
         qp_power(display, true);
+        qp_clear(display);
+        print_status_wpm();
     }
     if (is_screensaver_active) {
         is_screensaver_active = false;
+        screensaver_initialized = false;
+        stop_screensaver_anim_if_running();
+        qp_clear(display);
         print_status_wpm();
     }
 }
 
 void shuffle_icons(void) {
-    if (is_shuffled) return;
-
     for (uint16_t i = 0; i < NUM_ICONS; i++) {
         shuffled_indices[i] = i;
     }
@@ -331,12 +233,13 @@ void shuffle_icons(void) {
     // Fisher-Yates Shuffle
     for (uint16_t i = NUM_ICONS - 1; i > 0; i--) {
         uint16_t j = rand() % (i + 1);
-        uint8_t temp = shuffled_indices[i];
+        uint16_t temp = shuffled_indices[i];
         shuffled_indices[i] = shuffled_indices[j];
         shuffled_indices[j] = temp;
     }
 
     is_shuffled = true;
+    shuffle_deck_pos = 0;
     print_status_wpm(); // Force redraw to show the newly assigned random starting icon
 }
 
@@ -356,7 +259,9 @@ void show_timeout_setting_screen(void) {
     }
     if (is_screensaver_active) {
         is_screensaver_active = false;
+        stop_screensaver_anim_if_running();
     }
+    stop_char_anim_if_running();
     display_override = 3;
     timeout_setting_timer = timer_read32();
     extern void print_status_wpm(void);
@@ -370,7 +275,9 @@ void show_dly_setting_screen(void) {
     }
     if (is_screensaver_active) {
         is_screensaver_active = false;
+        stop_screensaver_anim_if_running();
     }
+    stop_char_anim_if_running();
     display_override = 4;
     timeout_setting_timer = timer_read32();
     extern void print_status_wpm(void);
@@ -465,49 +372,79 @@ static void print_status_wpm(void) {
     }
 
     // NORMAL SCREEN
-    qp_clear(display);
+    if (is_keyboard_master()) {
+        // Redraw only the top portion for the layer indicator (keeps bottom animation intact)
+        qp_rect(display, 0, 0, 31, 65, 0, 0, 0, true);
+    } else {
+        qp_clear(display);
+    }
 
     uint8_t layer = layer_state ? get_highest_layer(layer_state) : get_highest_layer(default_layer_state);
-    uint8_t current_wpm = get_current_wpm();
 
-            // Top: Layer (Rubik 48)
-            extern bool one_handed_mode_enabled;
-            const char* layer_str;
-            if (one_handed_mode_enabled || layer == 5) layer_str = "5";
-            else if (layer == 0) layer_str = "0";
-            else if (layer == 1) layer_str = "S";
-            else if (layer == 2) layer_str = "1";
-            else if (layer == 3) layer_str = "2";
-            else if (layer == 4) layer_str = "4";
-            else layer_str = "+";
+    // Top: Layer in decorative HUD frame
+    extern bool one_handed_mode_enabled;
+    const char* layer_str;
+    bool is_34 = (layer >= 6 && layer <= 10);
+    if (one_handed_mode_enabled || layer == 5) layer_str = "5";
+    else if (layer == 0) layer_str = "0";
+    else if (layer == 1) layer_str = "S";
+    else if (layer == 2) layer_str = "1";
+    else if (layer == 3) layer_str = "2";
+    else if (layer == 4) layer_str = "4";
+    else if (layer == 6) layer_str = "34";
+    else if (layer == 7) layer_str = "3S";
+    else if (layer == 8) layer_str = "N1";
+    else if (layer == 9) layer_str = "N2";
+    else if (layer == 10) layer_str = "N3";
+    else layer_str = "+";
 
-            int16_t lw = qp_textwidth(rubik_48_font, layer_str);
-            int16_t lx = (32 - lw) / 2;
-            if (lx < 0) lx = 0;
+    bool inverted = (one_handed_mode_enabled || layer == 5);
+    if (inverted) {
+        // Solid white background for inverted layer mode
+        qp_rect(display, 0, 0, 31, 55, 0, 0, 255, true);
+    }
 
-            if (one_handed_mode_enabled || layer == 5) {
-                // Inverted background for One-Handed mode / Layer 5
-                qp_rect(display, 0, 0, 32, 50, 0, 0, 255, true);
-                qp_drawtext_recolor(display, lx, 0, rubik_48_font, layer_str, 0, 0, 0, 0, 0, 255);
-            } else {
-                qp_drawtext(display, lx, 0, rubik_48_font, layer_str);
-            }
+    if (is_34) {
+        int16_t lw = qp_textwidth(rubik_24_font, layer_str);
+        int16_t lx = (32 - lw) / 2;
+        if (lx < 0) lx = 0;
+        if (inverted) {
+            qp_drawtext_recolor(display, lx, 14, rubik_24_font, layer_str, 0, 0, 0, 0, 0, 255);
+        } else {
+            qp_drawtext(display, lx, 14, rubik_24_font, layer_str);
+        }
+    } else {
+        int16_t lw = qp_textwidth(rubik_48_font, layer_str);
+        int16_t lx = (32 - lw) / 2;
+        if (lx < 0) lx = 0;
+        if (inverted) {
+            qp_drawtext_recolor(display, lx, 4, rubik_48_font, layer_str, 0, 0, 0, 0, 0, 255);
+        } else {
+            qp_drawtext(display, lx, 4, rubik_48_font, layer_str);
+        }
+    }
 
-            // Middle: WPM (Rubik 24)
-            char wpm_str[16];
-            snprintf(wpm_str, sizeof(wpm_str), "%02d", current_wpm);
-            int16_t ww = qp_textwidth(rubik_24_font, wpm_str);
-            int16_t wx = (32 - ww) / 2;
-            if (wx < 0) wx = 0;
-            qp_drawtext(display, wx, 55, rubik_24_font, wpm_str);
+    // Mid-screen decorative divider with center diamond notch
+    qp_line(display, 4, 66, 12, 66, 0, 0, 255);
+    qp_line(display, 19, 66, 27, 66, 0, 0, 255);
+    qp_rect(display, 14, 65, 17, 67, 0, 0, 255, true);
 
-            // Bottom: Nerd Font Cyclable Icon (Y = 90)
-            uint8_t actual_idx = get_my_icon_idx();
-            const char* icon_str = nerd_icon_list[actual_idx];
-            int16_t iw = qp_textwidth(nerd_32_font, icon_str);
-            int16_t ix = (32 - iw) / 2;
-            if (ix < 0) ix = 0;
-            qp_drawtext(display, ix, 90, nerd_32_font, icon_str);
+    // Bottom area
+    if (is_keyboard_master()) {
+        // Master: start character animation if not currently running
+        if (char_anim_token == INVALID_DEFERRED_TOKEN && !is_screensaver_active && !is_screen_off) {
+            start_char_anim(current_char_anim_idx);
+        }
+    } else {
+        // Slave: Cyclable Icon (Y = 78)
+        uint16_t actual_idx = get_my_icon_idx();
+        const char* icon_str = nerd_icon_list[actual_idx];
+        int16_t iw = qp_textwidth(nerd_32_font, icon_str);
+        int16_t ix = (32 - iw) / 2;
+        if (ix < 0) ix = 0;
+        qp_drawtext(display, ix, 78, nerd_32_font, icon_str);
+    }
+
     qp_flush(display);
 }
 
@@ -515,17 +452,26 @@ static void print_status_wpm(void) {
 void oled_set_leader_state(bool active) {
     is_leader_active = active;
     display_override = active ? 2 : 0;
+    if (active) {
+        stop_char_anim_if_running();
+    }
     print_status_wpm();
 }
 
 void cycle_nerd_icon(bool forward) {
-    if (forward) {
-        current_icon_idx = (current_icon_idx + 1) % NUM_ICONS;
-    } else {
-        if (current_icon_idx == 0) current_icon_idx = NUM_ICONS - 1;
-        else current_icon_idx--;
+    if (!is_shuffled) {
+        shuffle_icons();
     }
-    // Force a redraw instantly when the encoder is turned
+    if (forward) {
+        shuffle_deck_pos++;
+        if (shuffle_deck_pos >= NUM_ICONS) {
+            shuffle_icons(); // Deck exhausted: fresh non-repeating shuffle
+        }
+    } else {
+        if (shuffle_deck_pos == 0) shuffle_deck_pos = NUM_ICONS - 1;
+        else shuffle_deck_pos--;
+    }
+    current_icon_idx = shuffled_indices[shuffle_deck_pos % NUM_ICONS];
     print_status_wpm();
 }
 
@@ -541,6 +487,19 @@ void qp_setup_oled(void) {
     modernpixels_12_font = qp_load_font_mem(font_modernpixels_12);
     sfmono_16_font = qp_load_font_mem(font_sfmono_16);
     rubik_16_font = qp_load_font_mem(font_rubik_16);
+
+    screensaver_imgs[0] = qp_load_image_mem(gfx_doom_fire);
+    screensaver_imgs[1] = qp_load_image_mem(gfx_wireframe_cube);
+    screensaver_imgs[2] = qp_load_image_mem(gfx_liquid_metaballs);
+    screensaver_imgs[3] = qp_load_image_mem(gfx_game_of_life);
+    screensaver_imgs[4] = qp_load_image_mem(gfx_starfield_warp);
+    screensaver_imgs[5] = qp_load_image_mem(gfx_tornado_vortex);
+    screensaver_imgs[6] = qp_load_image_mem(gfx_hurricane_eye);
+
+    for (uint8_t i = 0; i < NUM_CHAR_ANIMS; i++) {
+        char_anim_imgs[i] = qp_load_image_mem(char_anim_list[i].data);
+    }
+
     last_activity_timer = timer_read32();
 
     // Register custom split transaction for OLED sync (master -> slave)
@@ -556,6 +515,7 @@ void oled_sync_slave_handler(uint8_t in_buflen, const void* in_data, uint8_t out
     const oled_sync_data_t* data = &data_copy;
     slave_oled_sync.display_override = data->display_override;
     slave_oled_sync.is_shuffled = data->is_shuffled;
+    slave_oled_sync.activity_counter = data->activity_counter;
     
     // Write directly to the global variables on the slave side so they match the master
     extern uint8_t dynamic_mouse_speed;
@@ -622,18 +582,18 @@ void housekeeping_task_user(void) {
     // On the slave, process_record_user never fires, so we detect activity here
     if (!is_keyboard_master()) {
         static uint8_t prev_synced_layer = 255;
-        static uint8_t prev_synced_wpm = 255;
         static uint8_t prev_synced_override = 255;
+        static uint8_t prev_synced_activity = 255;
 
         uint8_t cur_layer = layer_state ? get_highest_layer(layer_state) : get_highest_layer(default_layer_state);
-        uint8_t cur_wpm = get_current_wpm();
         uint8_t cur_override = slave_oled_sync.display_override;
+        uint8_t cur_activity = slave_oled_sync.activity_counter;
 
         // If any synced data changed, it means the master is active
-        if (cur_layer != prev_synced_layer || cur_wpm != prev_synced_wpm || cur_override != prev_synced_override) {
+        if (cur_layer != prev_synced_layer || cur_override != prev_synced_override || cur_activity != prev_synced_activity) {
             prev_synced_layer = cur_layer;
-            prev_synced_wpm = cur_wpm;
             prev_synced_override = cur_override;
+            prev_synced_activity = cur_activity;
             oled_reset_screensaver();
         }
 
@@ -668,6 +628,7 @@ void housekeeping_task_user(void) {
             sync_data.screensaver_timeout = screensaver_timeout;
             sync_data.screenoff_timeout = screenoff_timeout;
             sync_data.dynamic_string_delay = dynamic_string_delay;
+            sync_data.activity_counter = master_activity_counter;
             
             transaction_rpc_send(SPLIT_OLED_SYNC, sizeof(sync_data), &sync_data);
         }
@@ -684,6 +645,7 @@ void housekeeping_task_user(void) {
         }
         if (is_screensaver_active) {
             is_screensaver_active = false;
+            stop_screensaver_anim_if_running();
         }
 
         // Set override so both sides show MOU
@@ -709,6 +671,9 @@ void housekeeping_task_user(void) {
         // Both sides draw the MOU screen (slave gets override=1 via sync)
         uint8_t my_override = get_my_display_override();
         if (my_override == 1) {
+            if (!was_mouse_mode) {
+                stop_char_anim_if_running();
+            }
             if (!was_mouse_mode || last_mouse_inverted != mouse_inverted || last_m_spd != dynamic_mouse_speed || last_s_spd != dynamic_scroll_speed || last_c_mod != speed_cycle_mode) {
                 print_mouse_mode_screen(mouse_inverted);
                 last_mouse_inverted = mouse_inverted;
@@ -777,10 +742,13 @@ void housekeeping_task_user(void) {
 
     uint32_t elapsed = timer_elapsed32(last_activity_timer);
 
-    // Turn off screen dynamically based on screenoff_timeout
-    if (elapsed > screenoff_timeout) {
+    // Turn off screen dynamically based on screenoff_timeout (screen saver stays on for screenoff_timeout before sleep)
+    if (elapsed > (screensaver_timeout + screenoff_timeout)) {
         if (!is_screen_off) {
             is_screen_off = true;
+            is_screensaver_active = false;
+            stop_char_anim_if_running();
+            stop_screensaver_anim_if_running();
             qp_clear(display);
             qp_flush(display);
             qp_power(display, false);
@@ -790,23 +758,36 @@ void housekeeping_task_user(void) {
 
     // Screensaver idle check dynamically based on screensaver_timeout
     if (elapsed > screensaver_timeout) {
-        static uint32_t screensaver_cycle_timer = 0;
         if (!is_screensaver_active) {
             is_screensaver_active = true;
-            screensaver_cycle_timer = timer_read32();
-            print_screensaver();
-        } else {
-            // Update every 100ms for a smooth 10fps falling animation
-            if (timer_elapsed32(screensaver_cycle_timer) > 100) {
-                screensaver_cycle_timer = timer_read32();
+            screensaver_initialized = false;
+            stop_char_anim_if_running();
+            qp_clear(display);
+            if (is_keyboard_master()) {
+                current_screensaver_idx = 0;
+                screensaver_switch_timer = timer_read32();
+                start_screensaver_anim(current_screensaver_idx);
+            } else {
                 print_screensaver();
+            }
+        } else {
+            if (is_keyboard_master()) {
+                if (timer_elapsed32(screensaver_switch_timer) > 10000) {
+                    screensaver_switch_timer = timer_read32();
+                    current_screensaver_idx = (current_screensaver_idx + 1) % NUM_SCREENSAVERS;
+                    start_screensaver_anim(current_screensaver_idx);
+                }
+            } else {
+                static uint32_t screensaver_cycle_timer = 0;
+                if (timer_elapsed32(screensaver_cycle_timer) > 80) {
+                    screensaver_cycle_timer = timer_read32();
+                    print_screensaver();
+                }
             }
         }
         return; // Skip normal UI updates while screensaver is active
     }
 
-    static uint32_t last_draw = 0;
-    static uint8_t last_wpm = 255;
     static uint8_t last_layer = 255;
 
     // Do not auto-update normal UI if leader screen is active (override = 2)
@@ -841,23 +822,35 @@ void housekeeping_task_user(void) {
         return;
     }
 
-    uint8_t current_wpm = get_current_wpm();
     uint8_t current_layer = layer_state ? get_highest_layer(layer_state) : get_highest_layer(default_layer_state);
 
-    if (current_wpm != last_wpm || current_layer != last_layer) {
-        if (timer_elapsed32(last_draw) > 100) {
-            print_status_wpm();
-            last_wpm = current_wpm;
-            last_layer = current_layer;
-            last_draw = timer_read32();
-        }
+    if (current_layer != last_layer) {
+        print_status_wpm();
+        last_layer = current_layer;
     }
 
-    // Auto-cycle icon every 1.5 seconds to prevent burn-in
-    static uint32_t cycle_timer = 0;
-    if (timer_elapsed32(cycle_timer) > 1500) {
-        cycle_timer = timer_read32();
-        cycle_nerd_icon(true);
+    if (is_keyboard_master()) {
+        // Master: randomly switch to another character animation every 2 seconds
+        if (char_anim_token == INVALID_DEFERRED_TOKEN) {
+            char_anim_switch_timer = timer_read32();
+            current_char_anim_idx = rand() % NUM_CHAR_ANIMS;
+            start_char_anim(current_char_anim_idx);
+        } else if (timer_elapsed32(char_anim_switch_timer) > 2000) {
+            char_anim_switch_timer = timer_read32();
+            uint8_t next_idx;
+            do {
+                next_idx = rand() % NUM_CHAR_ANIMS;
+            } while (next_idx == current_char_anim_idx && NUM_CHAR_ANIMS > 1);
+            current_char_anim_idx = next_idx;
+            start_char_anim(current_char_anim_idx);
+        }
+    } else {
+        // Slave: Auto-cycle icon every 1.5 seconds to prevent burn-in, but ONLY if not actively typing
+        static uint32_t cycle_timer = 0;
+        if (timer_elapsed32(cycle_timer) > 1500 && timer_elapsed32(last_activity_timer) > 1000) {
+            cycle_timer = timer_read32();
+            cycle_nerd_icon(true);
+        }
     }
 }
 
