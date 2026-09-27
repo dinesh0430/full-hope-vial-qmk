@@ -32,6 +32,13 @@ SRC += fonts/fool_16.qff.c fonts/fool_32.qff.c fonts/rubik_48.qff.c fonts/nerd_3
        gfx/tornado_vortex.qgf.c gfx/hurricane_eye.qgf.c \
        gfx/plasma_wave.qgf.c gfx/lava_lamp.qgf.c gfx/raindrop_ripples.qgf.c \
        gfx/wireframe_torus.qgf.c gfx/matrix_rain.qgf.c gfx/lorenz_attractor.qgf.c \
+       gfx/slosh_flask.qgf.c gfx/viscous_dropper.qgf.c gfx/double_pendulum.qgf.c gfx/vortex_rings.qgf.c \
+       gfx/milkdrop_tunnel.qgf.c gfx/liquid_spectrogram.qgf.c gfx/wmp_spikes.qgf.c gfx/cyber_ribbon.qgf.c \
+       gfx/wave_string.qgf.c gfx/fourier_morph.qgf.c gfx/moire_curtain.qgf.c gfx/coupled_oscillators.qgf.c \
+       gfx/three_body_orbit.qgf.c gfx/black_hole.qgf.c gfx/magnetic_field.qgf.c \
+       gfx/pendulum_wave.qgf.c gfx/euler_spiral.qgf.c gfx/superformula.qgf.c gfx/kelvin_helmholtz.qgf.c \
+       gfx/convection_cells.qgf.c gfx/chladni_plate.qgf.c gfx/karman_vortex.qgf.c gfx/tesseract_4d.qgf.c \
+       gfx/soliton_collision.qgf.c gfx/trefoil_knot.qgf.c \
        gfx/warrior_idle.qgf.c gfx/warrior_run.qgf.c gfx/warrior_atk1.qgf.c gfx/warrior_atk2.qgf.c gfx/warrior_guard.qgf.c \
        gfx/monk_idle.qgf.c gfx/monk_run.qgf.c gfx/monk_heal.qgf.c gfx/monk_effect.qgf.c \
        gfx/archer_idle.qgf.c gfx/archer_run.qgf.c gfx/archer_shoot.qgf.c \
