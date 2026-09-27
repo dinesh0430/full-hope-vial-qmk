@@ -17,6 +17,12 @@
 #include "gfx/starfield_warp.qgf.h"
 #include "gfx/tornado_vortex.qgf.h"
 #include "gfx/hurricane_eye.qgf.h"
+#include "gfx/plasma_wave.qgf.h"
+#include "gfx/lava_lamp.qgf.h"
+#include "gfx/raindrop_ripples.qgf.h"
+#include "gfx/wireframe_torus.qgf.h"
+#include "gfx/matrix_rain.qgf.h"
+#include "gfx/lorenz_attractor.qgf.h"
 #include "char_anims.h"
 
 /* Shared state with keymap.c and quantum/mousekey.c */
@@ -43,7 +49,7 @@ painter_font_handle_t fool_32_font;
 painter_font_handle_t rubik_48_font;
 painter_font_handle_t nerd_32_font;
 
-#define NUM_SCREENSAVERS 7
+#define NUM_SCREENSAVERS 13
 painter_image_handle_t screensaver_imgs[NUM_SCREENSAVERS] = {NULL};
 deferred_token screensaver_anim_token = INVALID_DEFERRED_TOKEN;
 static uint8_t current_screensaver_idx = 0;
@@ -62,6 +68,29 @@ static void start_screensaver_anim(uint8_t idx) {
         qp_clear(display);
         screensaver_anim_token = qp_animate(display, 0, 0, screensaver_imgs[idx]);
     }
+}
+
+// Shuffle-deck screensaver picker: every screensaver plays once before any repeats
+static uint8_t ss_deck[NUM_SCREENSAVERS];
+static uint8_t ss_deck_pos = NUM_SCREENSAVERS; // Start exhausted to trigger initial shuffle
+
+static void shuffle_ss_deck(void) {
+    // Initialize deck with indices 0..NUM_SCREENSAVERS-1
+    for (uint8_t i = 0; i < NUM_SCREENSAVERS; i++) ss_deck[i] = i;
+    // Fisher-Yates shuffle using timer entropy
+    for (uint8_t i = NUM_SCREENSAVERS - 1; i > 0; i--) {
+        uint32_t h = (timer_read32() * 1664525u + 1013904223u);
+        uint8_t j = h % (i + 1);
+        uint8_t tmp = ss_deck[i];
+        ss_deck[i] = ss_deck[j];
+        ss_deck[j] = tmp;
+    }
+    ss_deck_pos = 0;
+}
+
+static uint8_t pick_random_screensaver(void) {
+    if (ss_deck_pos >= NUM_SCREENSAVERS) shuffle_ss_deck();
+    return ss_deck[ss_deck_pos++];
 }
 
 static painter_image_handle_t current_char_anim_img = NULL;
@@ -476,6 +505,12 @@ void qp_setup_oled(void) {
     screensaver_imgs[4] = qp_load_image_mem(gfx_starfield_warp);
     screensaver_imgs[5] = qp_load_image_mem(gfx_tornado_vortex);
     screensaver_imgs[6] = qp_load_image_mem(gfx_hurricane_eye);
+    screensaver_imgs[7] = qp_load_image_mem(gfx_plasma_wave);
+    screensaver_imgs[8] = qp_load_image_mem(gfx_lava_lamp);
+    screensaver_imgs[9] = qp_load_image_mem(gfx_raindrop_ripples);
+    screensaver_imgs[10] = qp_load_image_mem(gfx_wireframe_torus);
+    screensaver_imgs[11] = qp_load_image_mem(gfx_matrix_rain);
+    screensaver_imgs[12] = qp_load_image_mem(gfx_lorenz_attractor);
 
     last_activity_timer = timer_read32();
 
@@ -725,7 +760,7 @@ void housekeeping_task_user(void) {
             stop_char_anim_if_running();
             qp_clear(display);
             if (is_keyboard_master()) {
-                current_screensaver_idx = 0;
+                current_screensaver_idx = pick_random_screensaver();
                 screensaver_switch_timer = timer_read32();
                 start_screensaver_anim(current_screensaver_idx);
             } else {
@@ -733,9 +768,9 @@ void housekeeping_task_user(void) {
             }
         } else {
             if (is_keyboard_master()) {
-                if (timer_elapsed32(screensaver_switch_timer) > 10000) {
+                if (timer_elapsed32(screensaver_switch_timer) > 5000) {
                     screensaver_switch_timer = timer_read32();
-                    current_screensaver_idx = (current_screensaver_idx + 1) % NUM_SCREENSAVERS;
+                    current_screensaver_idx = pick_random_screensaver();
                     start_screensaver_anim(current_screensaver_idx);
                 }
             } else {

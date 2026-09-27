@@ -30,6 +30,8 @@ WPM_ENABLE = no
 SRC += fonts/fool_16.qff.c fonts/fool_32.qff.c fonts/rubik_48.qff.c fonts/nerd_32.qff.c \
        gfx/doom_fire.qgf.c gfx/wireframe_cube.qgf.c gfx/liquid_metaballs.qgf.c gfx/game_of_life.qgf.c gfx/starfield_warp.qgf.c \
        gfx/tornado_vortex.qgf.c gfx/hurricane_eye.qgf.c \
+       gfx/plasma_wave.qgf.c gfx/lava_lamp.qgf.c gfx/raindrop_ripples.qgf.c \
+       gfx/wireframe_torus.qgf.c gfx/matrix_rain.qgf.c gfx/lorenz_attractor.qgf.c \
        gfx/warrior_idle.qgf.c gfx/warrior_run.qgf.c gfx/warrior_atk1.qgf.c gfx/warrior_atk2.qgf.c gfx/warrior_guard.qgf.c \
        gfx/monk_idle.qgf.c gfx/monk_run.qgf.c gfx/monk_heal.qgf.c gfx/monk_effect.qgf.c \
        gfx/archer_idle.qgf.c gfx/archer_run.qgf.c gfx/archer_shoot.qgf.c \
