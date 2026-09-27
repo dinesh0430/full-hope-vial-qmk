@@ -6,13 +6,10 @@
 #ifdef QUANTUM_PAINTER_ENABLE
 #include <qp.h>
 #include "split_common/transactions.h"
-#include "fonts/rubik_24.qff.h"
+#include "fonts/fool_16.qff.h"
+#include "fonts/fool_32.qff.h"
 #include "fonts/rubik_48.qff.h"
 #include "fonts/nerd_32.qff.h"
-#include "fonts/modernpixels_24.qff.h"
-#include "fonts/modernpixels_12.qff.h"
-#include "fonts/sfmono_16.qff.h"
-#include "fonts/rubik_16.qff.h"
 #include "gfx/doom_fire.qgf.h"
 #include "gfx/wireframe_cube.qgf.h"
 #include "gfx/liquid_metaballs.qgf.h"
@@ -22,14 +19,29 @@
 #include "gfx/hurricane_eye.qgf.h"
 #include "char_anims.h"
 
+/* Shared state with keymap.c and quantum/mousekey.c */
+extern uint8_t dynamic_mouse_speed;
+extern uint8_t dynamic_scroll_speed;
+extern uint8_t speed_cycle_mode;
+extern uint8_t dynamic_string_delay;
+
+/* Function Prototypes */
+void print_status_wpm(void);
+void oled_reset_screensaver(void);
+void shuffle_icons(void);
+void reshuffle_icons(void);
+void cycle_nerd_icon(bool forward);
+void show_timeout_setting_screen(void);
+void show_dly_setting_screen(void);
+void oled_set_leader_state(bool active);
+void qp_setup_oled(void);
+void oled_sync_slave_handler(uint8_t in_buflen, const void* in_data, uint8_t out_buflen, void* out_data);
+
 painter_device_t display;
-painter_font_handle_t rubik_24_font;
+painter_font_handle_t fool_16_font;
+painter_font_handle_t fool_32_font;
 painter_font_handle_t rubik_48_font;
 painter_font_handle_t nerd_32_font;
-painter_font_handle_t modernpixels_24_font;
-painter_font_handle_t modernpixels_12_font;
-painter_font_handle_t sfmono_16_font;
-painter_font_handle_t rubik_16_font;
 
 #define NUM_SCREENSAVERS 7
 painter_image_handle_t screensaver_imgs[NUM_SCREENSAVERS] = {NULL};
@@ -52,7 +64,7 @@ static void start_screensaver_anim(uint8_t idx) {
     }
 }
 
-painter_image_handle_t char_anim_imgs[NUM_CHAR_ANIMS] = {NULL};
+static painter_image_handle_t current_char_anim_img = NULL;
 deferred_token char_anim_token = INVALID_DEFERRED_TOKEN;
 static uint8_t current_char_anim_idx = 0;
 static uint32_t char_anim_switch_timer = 0;
@@ -62,20 +74,27 @@ static void stop_char_anim_if_running(void) {
         qp_stop_animation(char_anim_token);
         char_anim_token = INVALID_DEFERRED_TOKEN;
     }
+    if (current_char_anim_img != NULL) {
+        qp_close_image(current_char_anim_img);
+        current_char_anim_img = NULL;
+    }
 }
 
 static void start_char_anim(uint8_t idx) {
     stop_char_anim_if_running();
-    if (idx < NUM_CHAR_ANIMS && char_anim_imgs[idx] != NULL) {
-        // Clear bottom slot only (Y: 68..127)
-        qp_rect(display, 0, 68, 31, 127, 0, 0, 0, true);
-        uint8_t h = char_anim_list[idx].height;
-        uint8_t w = char_anim_list[idx].width;
-        int16_t anim_x = (32 - w) / 2;
-        if (anim_x < 0) anim_x = 0;
-        int16_t anim_y = 68 + (60 - h) / 2;
-        if (anim_y < 68) anim_y = 68;
-        char_anim_token = qp_animate(display, anim_x, anim_y, char_anim_imgs[idx]);
+    if (idx < NUM_CHAR_ANIMS) {
+        current_char_anim_img = qp_load_image_mem(char_anim_list[idx].data);
+        if (current_char_anim_img != NULL) {
+            // Clear bottom slot only (Y: 71..127)
+            qp_rect(display, 0, 71, 31, 127, 0, 0, 0, true);
+            uint8_t h = char_anim_list[idx].height;
+            uint8_t w = char_anim_list[idx].width;
+            int16_t anim_x = (32 - w) / 2;
+            if (anim_x < 0) anim_x = 0;
+            int16_t anim_y = 71 + (57 - h) / 2;
+            if (anim_y < 71) anim_y = 71;
+            char_anim_token = qp_animate(display, anim_x, anim_y, current_char_anim_img);
+        }
     }
 }
 
@@ -123,12 +142,8 @@ typedef struct __attribute__((packed)) {
 // Slave-side copy of synced data
 static oled_sync_data_t slave_oled_sync = {0, false, 0, 0, 0, 3000, 300000, 50, 0};
 
-static void print_status_wpm(void); // Forward declaration to fix compiler error
-void oled_sync_slave_handler(uint8_t in_buflen, const void* in_data, uint8_t out_buflen, void* out_data); // Forward declaration
-
 static uint16_t get_my_icon_idx(void) {
     if (!is_shuffled) {
-        void shuffle_icons(void);
         shuffle_icons();
     }
     return shuffled_indices[shuffle_deck_pos % NUM_ICONS];
@@ -147,12 +162,10 @@ typedef struct {
 static uint16_t screensaver_deck_pos = 0;
 static uint16_t get_next_screensaver_icon(void) {
     if (!is_shuffled) {
-        void shuffle_icons(void);
         shuffle_icons();
     }
     screensaver_deck_pos++;
     if (screensaver_deck_pos >= NUM_ICONS) {
-        void shuffle_icons(void);
         shuffle_icons();
         screensaver_deck_pos = 0;
     }
@@ -264,7 +277,6 @@ void show_timeout_setting_screen(void) {
     stop_char_anim_if_running();
     display_override = 3;
     timeout_setting_timer = timer_read32();
-    extern void print_status_wpm(void);
     print_status_wpm();
 }
 
@@ -280,7 +292,6 @@ void show_dly_setting_screen(void) {
     stop_char_anim_if_running();
     display_override = 4;
     timeout_setting_timer = timer_read32();
-    extern void print_status_wpm(void);
     print_status_wpm();
 }
 
@@ -293,7 +304,7 @@ static uint8_t get_my_display_override(void) {
     }
 }
 
-static void print_status_wpm(void) {
+void print_status_wpm(void) {
     uint8_t my_override = get_my_display_override();
 
     if (my_override == 2) {
@@ -304,17 +315,17 @@ static void print_status_wpm(void) {
         const char* text_d = "D";
         const char* text_r = "R";
 
-        int16_t lw = qp_textwidth(rubik_24_font, text_l);
-        int16_t dw = qp_textwidth(rubik_24_font, text_d);
-        int16_t rw = qp_textwidth(rubik_24_font, text_r);
+        int16_t lw = qp_textwidth(fool_32_font, text_l);
+        int16_t dw = qp_textwidth(fool_32_font, text_d);
+        int16_t rw = qp_textwidth(fool_32_font, text_r);
 
         int16_t lx = (32 - lw) / 2; if (lx < 0) lx = 0;
         int16_t dx = (32 - dw) / 2; if (dx < 0) dx = 0;
         int16_t rx = (32 - rw) / 2; if (rx < 0) rx = 0;
 
-        qp_drawtext_recolor(display, lx, 14, rubik_24_font, text_l, 0,0,0, 0,0,255);
-        qp_drawtext_recolor(display, dx, 52, rubik_24_font, text_d, 0,0,0, 0,0,255);
-        qp_drawtext_recolor(display, rx, 90, rubik_24_font, text_r, 0,0,0, 0,0,255);
+        qp_drawtext_recolor(display, lx, 14, fool_32_font, text_l, 0,0,0, 0,0,255);
+        qp_drawtext_recolor(display, dx, 52, fool_32_font, text_d, 0,0,0, 0,0,255);
+        qp_drawtext_recolor(display, rx, 90, fool_32_font, text_r, 0,0,0, 0,0,255);
 
         qp_flush(display);
         return;
@@ -325,26 +336,26 @@ static void print_status_wpm(void) {
         qp_clear(display);
 
         // Draw "SS"
-        int16_t lw1 = qp_textwidth(sfmono_16_font, "SS");
+        int16_t lw1 = qp_textwidth(fool_16_font, "SS");
         int16_t lx1 = (32 - lw1) / 2; if (lx1 < 0) lx1 = 0;
-        qp_drawtext(display, lx1, 5, sfmono_16_font, "SS");
+        qp_drawtext(display, lx1, 5, fool_16_font, "SS");
 
         char ss_str[16];
         snprintf(ss_str, sizeof(ss_str), "%ds", (int)(screensaver_timeout / 1000));
-        int16_t vw1 = qp_textwidth(sfmono_16_font, ss_str);
+        int16_t vw1 = qp_textwidth(fool_16_font, ss_str);
         int16_t vx1 = (32 - vw1) / 2; if (vx1 < 0) vx1 = 0;
-        qp_drawtext(display, vx1, 22, sfmono_16_font, ss_str);
+        qp_drawtext(display, vx1, 22, fool_16_font, ss_str);
 
         // Draw "OFF"
-        int16_t lw2 = qp_textwidth(sfmono_16_font, "OFF");
+        int16_t lw2 = qp_textwidth(fool_16_font, "OFF");
         int16_t lx2 = (32 - lw2) / 2; if (lx2 < 0) lx2 = 0;
-        qp_drawtext(display, lx2, 65, sfmono_16_font, "OFF");
+        qp_drawtext(display, lx2, 65, fool_16_font, "OFF");
 
         char off_str[16];
         snprintf(off_str, sizeof(off_str), "%ds", (int)(screenoff_timeout / 1000));
-        int16_t vw2 = qp_textwidth(sfmono_16_font, off_str);
+        int16_t vw2 = qp_textwidth(fool_16_font, off_str);
         int16_t vx2 = (32 - vw2) / 2; if (vx2 < 0) vx2 = 0;
-        qp_drawtext(display, vx2, 82, sfmono_16_font, off_str);
+        qp_drawtext(display, vx2, 82, fool_16_font, off_str);
 
         qp_flush(display);
         return;
@@ -355,17 +366,16 @@ static void print_status_wpm(void) {
         qp_clear(display);
 
         // Draw "DLY"
-        int16_t lw1 = qp_textwidth(rubik_16_font, "DLY");
+        int16_t lw1 = qp_textwidth(fool_16_font, "DLY");
         int16_t lx1 = (32 - lw1) / 2; if (lx1 < 0) lx1 = 0;
-        qp_drawtext(display, lx1, 20, rubik_16_font, "DLY");
+        qp_drawtext(display, lx1, 20, fool_16_font, "DLY");
 
         char dly_str[16];
-        extern uint8_t dynamic_string_delay;
         uint8_t current_dly = is_keyboard_master() ? dynamic_string_delay : slave_oled_sync.dynamic_string_delay;
         snprintf(dly_str, sizeof(dly_str), "%d", current_dly);
-        int16_t vw1 = qp_textwidth(rubik_16_font, dly_str);
+        int16_t vw1 = qp_textwidth(fool_16_font, dly_str);
         int16_t vx1 = (32 - vw1) / 2; if (vx1 < 0) vx1 = 0;
-        qp_drawtext(display, vx1, 60, rubik_16_font, dly_str);
+        qp_drawtext(display, vx1, 60, fool_16_font, dly_str);
 
         qp_flush(display);
         return;
@@ -374,7 +384,7 @@ static void print_status_wpm(void) {
     // NORMAL SCREEN
     if (is_keyboard_master()) {
         // Redraw only the top portion for the layer indicator (keeps bottom animation intact)
-        qp_rect(display, 0, 0, 31, 65, 0, 0, 0, true);
+        qp_rect(display, 0, 0, 31, 70, 0, 0, 0, true);
     } else {
         qp_clear(display);
     }
@@ -382,52 +392,26 @@ static void print_status_wpm(void) {
     uint8_t layer = layer_state ? get_highest_layer(layer_state) : get_highest_layer(default_layer_state);
 
     // Top: Layer in decorative HUD frame
-    extern bool one_handed_mode_enabled;
     const char* layer_str;
-    bool is_34 = (layer >= 6 && layer <= 10);
-    if (one_handed_mode_enabled || layer == 5) layer_str = "5";
-    else if (layer == 0) layer_str = "0";
+    if (layer == 0) layer_str = "0";
     else if (layer == 1) layer_str = "S";
     else if (layer == 2) layer_str = "1";
     else if (layer == 3) layer_str = "2";
     else if (layer == 4) layer_str = "4";
-    else if (layer == 6) layer_str = "34";
-    else if (layer == 7) layer_str = "3S";
-    else if (layer == 8) layer_str = "N1";
-    else if (layer == 9) layer_str = "N2";
-    else if (layer == 10) layer_str = "N3";
     else layer_str = "+";
 
-    bool inverted = (one_handed_mode_enabled || layer == 5);
-    if (inverted) {
-        // Solid white background for inverted layer mode
-        qp_rect(display, 0, 0, 31, 55, 0, 0, 255, true);
-    }
+    int16_t lw = qp_textwidth(rubik_48_font, layer_str);
+    int16_t lx = (32 - lw) / 2;
+    if (lx < 0) lx = 0;
+    qp_drawtext(display, lx, 1, rubik_48_font, layer_str);
 
-    if (is_34) {
-        int16_t lw = qp_textwidth(rubik_24_font, layer_str);
-        int16_t lx = (32 - lw) / 2;
-        if (lx < 0) lx = 0;
-        if (inverted) {
-            qp_drawtext_recolor(display, lx, 14, rubik_24_font, layer_str, 0, 0, 0, 0, 0, 255);
-        } else {
-            qp_drawtext(display, lx, 14, rubik_24_font, layer_str);
-        }
-    } else {
-        int16_t lw = qp_textwidth(rubik_48_font, layer_str);
-        int16_t lx = (32 - lw) / 2;
-        if (lx < 0) lx = 0;
-        if (inverted) {
-            qp_drawtext_recolor(display, lx, 4, rubik_48_font, layer_str, 0, 0, 0, 0, 0, 255);
-        } else {
-            qp_drawtext(display, lx, 4, rubik_48_font, layer_str);
-        }
-    }
-
-    // Mid-screen decorative divider with center diamond notch
-    qp_line(display, 4, 66, 12, 66, 0, 0, 255);
-    qp_line(display, 19, 66, 27, 66, 0, 0, 255);
-    qp_rect(display, 14, 65, 17, 67, 0, 0, 255, true);
+    // Base layout indicator: "Strdy" or "Qwrty" in place of the separator line
+    bool is_sturdy = (default_layer_state & (1UL << 1)) || (layer == 1);
+    const char* layout_tag = is_sturdy ? "Strdy" : "Qwrty";
+    int16_t tag_w = qp_textwidth(fool_16_font, layout_tag);
+    int16_t tag_x = (32 - tag_w) / 2;
+    if (tag_x < 0) tag_x = 0;
+    qp_drawtext(display, tag_x, 57, fool_16_font, layout_tag);
 
     // Bottom area
     if (is_keyboard_master()) {
@@ -436,13 +420,13 @@ static void print_status_wpm(void) {
             start_char_anim(current_char_anim_idx);
         }
     } else {
-        // Slave: Cyclable Icon (Y = 78)
+        // Slave: Cyclable Icon (Y = 83)
         uint16_t actual_idx = get_my_icon_idx();
         const char* icon_str = nerd_icon_list[actual_idx];
         int16_t iw = qp_textwidth(nerd_32_font, icon_str);
         int16_t ix = (32 - iw) / 2;
         if (ix < 0) ix = 0;
-        qp_drawtext(display, ix, 78, nerd_32_font, icon_str);
+        qp_drawtext(display, ix, 83, nerd_32_font, icon_str);
     }
 
     qp_flush(display);
@@ -480,13 +464,10 @@ void cycle_nerd_icon(bool forward) {
 void qp_setup_oled(void) {
     display = qp_sh1106_make_i2c_device(128, 32, 0x3C);
     qp_init(display, QP_ROTATION_90);
-    rubik_24_font = qp_load_font_mem(font_rubik_24);
+    fool_16_font = qp_load_font_mem(font_fool_16);
+    fool_32_font = qp_load_font_mem(font_fool_32);
     rubik_48_font = qp_load_font_mem(font_rubik_48);
     nerd_32_font = qp_load_font_mem(font_nerd_32);
-    modernpixels_24_font = qp_load_font_mem(font_modernpixels_24);
-    modernpixels_12_font = qp_load_font_mem(font_modernpixels_12);
-    sfmono_16_font = qp_load_font_mem(font_sfmono_16);
-    rubik_16_font = qp_load_font_mem(font_rubik_16);
 
     screensaver_imgs[0] = qp_load_image_mem(gfx_doom_fire);
     screensaver_imgs[1] = qp_load_image_mem(gfx_wireframe_cube);
@@ -495,10 +476,6 @@ void qp_setup_oled(void) {
     screensaver_imgs[4] = qp_load_image_mem(gfx_starfield_warp);
     screensaver_imgs[5] = qp_load_image_mem(gfx_tornado_vortex);
     screensaver_imgs[6] = qp_load_image_mem(gfx_hurricane_eye);
-
-    for (uint8_t i = 0; i < NUM_CHAR_ANIMS; i++) {
-        char_anim_imgs[i] = qp_load_image_mem(char_anim_list[i].data);
-    }
 
     last_activity_timer = timer_read32();
 
@@ -518,10 +495,6 @@ void oled_sync_slave_handler(uint8_t in_buflen, const void* in_data, uint8_t out
     slave_oled_sync.activity_counter = data->activity_counter;
     
     // Write directly to the global variables on the slave side so they match the master
-    extern uint8_t dynamic_mouse_speed;
-    extern uint8_t dynamic_scroll_speed;
-    extern uint8_t speed_cycle_mode;
-    extern uint8_t dynamic_string_delay;
     dynamic_mouse_speed = data->dynamic_mouse_speed;
     dynamic_scroll_speed = data->dynamic_scroll_speed;
     speed_cycle_mode = data->speed_cycle_mode;
@@ -531,10 +504,6 @@ void oled_sync_slave_handler(uint8_t in_buflen, const void* in_data, uint8_t out
 }
 
 static void print_mouse_mode_screen(bool inverted) {
-    extern uint8_t dynamic_mouse_speed;
-    extern uint8_t dynamic_scroll_speed;
-    extern uint8_t speed_cycle_mode;
-
     char mode_str[4];
     if (speed_cycle_mode == 0) strcpy(mode_str, "LOW");
     else strcpy(mode_str, "MID");
@@ -545,32 +514,36 @@ static void print_mouse_mode_screen(bool inverted) {
     char scroll_str[8];
     snprintf(scroll_str, sizeof(scroll_str), "S:%d", dynamic_scroll_speed);
 
-    int16_t mw = qp_textwidth(modernpixels_12_font, mode_str);
+    int16_t mw = qp_textwidth(fool_16_font, mode_str);
     int16_t mx = (32 - mw) / 2; if (mx < 0) mx = 0;
 
-    int16_t sw = qp_textwidth(modernpixels_12_font, speed_str);
+    int16_t sw = qp_textwidth(fool_16_font, speed_str);
     int16_t sx = (32 - sw) / 2; if (sx < 0) sx = 0;
 
-    int16_t scw = qp_textwidth(modernpixels_12_font, scroll_str);
+    int16_t scw = qp_textwidth(fool_16_font, scroll_str);
     int16_t scx = (32 - scw) / 2; if (scx < 0) scx = 0;
+
+    int16_t lx_m = (32 - qp_textwidth(fool_32_font, "M")) / 2; if (lx_m < 0) lx_m = 0;
+    int16_t lx_o = (32 - qp_textwidth(fool_32_font, "O")) / 2; if (lx_o < 0) lx_o = 0;
+    int16_t lx_u = (32 - qp_textwidth(fool_32_font, "U")) / 2; if (lx_u < 0) lx_u = 0;
 
     qp_clear(display);
     if (inverted) {
         // Draw white background only for the 'MOU' area
         qp_rect(display, 0, 0, 31, 79, 0, 0, 255, true);
-        qp_drawtext_recolor(display, 6, 4, rubik_24_font, "M", 0,0,0, 0,0,255);
-        qp_drawtext_recolor(display, 6, 28, rubik_24_font, "O", 0,0,0, 0,0,255);
-        qp_drawtext_recolor(display, 6, 52, rubik_24_font, "U", 0,0,0, 0,0,255);
+        qp_drawtext_recolor(display, lx_m, 4, fool_32_font, "M", 0,0,0, 0,0,255);
+        qp_drawtext_recolor(display, lx_o, 28, fool_32_font, "O", 0,0,0, 0,0,255);
+        qp_drawtext_recolor(display, lx_u, 52, fool_32_font, "U", 0,0,0, 0,0,255);
     } else {
-        qp_drawtext(display, 6, 4, rubik_24_font, "M");
-        qp_drawtext(display, 6, 28, rubik_24_font, "O");
-        qp_drawtext(display, 6, 52, rubik_24_font, "U");
+        qp_drawtext(display, lx_m, 4, fool_32_font, "M");
+        qp_drawtext(display, lx_o, 28, fool_32_font, "O");
+        qp_drawtext(display, lx_u, 52, fool_32_font, "U");
     }
 
     // Always draw mode, speed, and scroll on black background at the bottom
-    qp_drawtext(display, mx, 83, modernpixels_12_font, mode_str);
-    qp_drawtext(display, sx, 97, modernpixels_12_font, speed_str);
-    qp_drawtext(display, scx, 111, modernpixels_12_font, scroll_str);
+    qp_drawtext(display, mx, 83, fool_16_font, mode_str);
+    qp_drawtext(display, sx, 97, fool_16_font, speed_str);
+    qp_drawtext(display, scx, 111, fool_16_font, scroll_str);
 
     qp_flush(display);
 }
@@ -599,7 +572,6 @@ void housekeeping_task_user(void) {
 
         // Trigger reshuffle on slave if master shuffled
         if (slave_oled_sync.is_shuffled && !is_shuffled) {
-            void reshuffle_icons(void);
             reshuffle_icons();
         }
 
@@ -617,11 +589,6 @@ void housekeeping_task_user(void) {
             oled_sync_data_t sync_data;
             sync_data.display_override = (display_override == 4) ? 0 : display_override;
             sync_data.is_shuffled = is_shuffled;
-            
-            extern uint8_t dynamic_mouse_speed;
-            extern uint8_t dynamic_scroll_speed;
-            extern uint8_t speed_cycle_mode;
-            extern uint8_t dynamic_string_delay;
             sync_data.dynamic_mouse_speed = dynamic_mouse_speed;
             sync_data.dynamic_scroll_speed = dynamic_scroll_speed;
             sync_data.speed_cycle_mode = speed_cycle_mode;
@@ -656,9 +623,6 @@ void housekeeping_task_user(void) {
         static uint32_t mouse_flash_timer = 0;
         static bool mouse_inverted = false;
         static bool last_mouse_inverted = false;
-        extern uint8_t dynamic_mouse_speed;
-        extern uint8_t dynamic_scroll_speed;
-        extern uint8_t speed_cycle_mode;
         static uint8_t last_m_spd = 255;
         static uint8_t last_s_spd = 255;
         static uint8_t last_c_mod = 255;
@@ -717,9 +681,6 @@ void housekeeping_task_user(void) {
         }
         
         static bool last_slave_inverted = false;
-        extern uint8_t dynamic_mouse_speed;
-        extern uint8_t dynamic_scroll_speed;
-        extern uint8_t speed_cycle_mode;
         static uint8_t last_slv_m_spd = 255;
         static uint8_t last_slv_s_spd = 255;
         static uint8_t last_slv_c_mod = 255;
@@ -859,30 +820,22 @@ bool shutdown_user(bool jump_to_bootloader) {
         // Clear the screen to black
         qp_rect(display, 0, 0, 31, 127, 0, 0, 0, true);
 
-#ifdef IS_LEFT_SIDE
-        const char* text = "LEFT";
-#elif defined(IS_RIGHT_SIDE)
-        const char* text = "RGHT";
-#else
-        const char* text = "X";
-#endif
+        const char* text = is_keyboard_left() ? "LFT" : "RGT";
 
         int len = 0;
         while (text[len] != '\0') len++;
-        
-        // 112 pixels reserved for the vertical text, leaving bottom 16px for "BOOT"
-        int spacing = 112 / len;
 
-        // Draw "LEFT" or "RIGHT" vertically in large text (White text on Black bg)
+        // Draw "LFT" or "RGT" vertically (28px fool_32 glyphs)
+        // Balanced 128px screen budget:
+        // Top margin: 4px | Letters: 3 x 28px = 84px | Inter-letter gaps: 2 x 6px = 12px
+        // Gap before BOOT badge: 12px | BOOT badge: 16px (112..127) => Total = 128px
         for (int i = 0; i < len; i++) {
             char c_str[2] = { text[i], '\0' };
-            int16_t w = qp_textwidth(rubik_24_font, c_str);
+            int16_t w = qp_textwidth(fool_32_font, c_str);
             int16_t x = (32 - w) / 2; 
             if (x < 0) x = 0;
-            // Center the character in its vertical slot
-            int16_t y = i * spacing + (spacing - 24) / 2;
-            if (y < 0) y = 0;
-            qp_drawtext_recolor(display, x, y, rubik_24_font, c_str, 0, 0, 255, 0, 0, 0);
+            int16_t y = 4 + i * 34; // y = 4, 38, 72 (glyph ends at 100, leaving 12px before 112)
+            qp_drawtext_recolor(display, x, y, fool_32_font, c_str, 0, 0, 255, 0, 0, 0);
         }
 
         // Draw a white rectangle block at the bottom for the BOOT text
@@ -890,10 +843,10 @@ bool shutdown_user(bool jump_to_bootloader) {
 
         // Draw "BOOT" horizontally in small text at the bottom (Black text on White bg)
         const char* boot_str = "BOOT";
-        int16_t boot_w = qp_textwidth(modernpixels_12_font, boot_str);
+        int16_t boot_w = qp_textwidth(fool_16_font, boot_str);
         int16_t boot_x = (32 - boot_w) / 2;
         if (boot_x < 0) boot_x = 0;
-        qp_drawtext_recolor(display, boot_x, 114, modernpixels_12_font, boot_str, 0, 0, 0, 0, 0, 255);
+        qp_drawtext_recolor(display, boot_x, 115, fool_16_font, boot_str, 0, 0, 0, 0, 0, 255);
 
         qp_flush(display);
     }

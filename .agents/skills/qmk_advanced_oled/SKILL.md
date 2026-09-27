@@ -22,25 +22,8 @@ By default, `display_override` is synchronized to the slave half every 50ms so b
 *   **Example:** `sync_data.display_override = (display_override == 4) ? 0 : display_override;`
     This ensures the slave continues rendering the normal layer screen (`0`) while the master shows the temporary overlay (`4`).
 
-## 3. EEPROM Lazy-Writing for Encoders
-When using an encoder to change a setting, writing to EEPROM on every single click will quickly destroy the flash memory (limited to ~100k writes) and cause severe matrix stuttering.
-
-Instead, use the **Lazy-Write** pattern:
-
-1.  **RAM Update:** In the encoder action (`DLY_UP`/`DLY_DN`), instantly update the live RAM variable (e.g., `dynamic_string_delay += 10`).
-2.  **Start Timer:** Set `eeprom_needs_update = true;` and `eeprom_timer = timer_read32();`.
-3.  **Deferred Commit:** In `matrix_scan_user()`, wait until 3 seconds have passed since the last encoder turn before writing to EEPROM.
-    ```c
-    if (eeprom_needs_update && timer_elapsed32(eeprom_timer) > 3000) {
-        eeprom_needs_update = false;
-        user_config_t current_config;
-        current_config.raw = eeconfig_read_user();
-        if (current_config.string_delay != dynamic_string_delay) {
-            current_config.string_delay = dynamic_string_delay;
-            eeconfig_update_user(current_config.raw);
-        }
-    }
-    ```
-
-### EEPROM Initialization
-Always ensure your custom variables are stored in a `typedef union user_config_t` and properly initialized in `eeconfig_init_user()` (providing safe defaults) and loaded on boot in `keyboard_post_init_user()`.
+## 3. Pure RAM Runtime Settings (No EEPROM Persistence)
+To prevent flash memory wear and eliminate matrix scan stuttering, settings adjusted via encoders (such as `dynamic_string_delay`, `dynamic_mouse_speed`, and `dynamic_scroll_speed`) operate **purely in RAM**:
+- Values are initialized to safe defaults on boot (e.g. `dynamic_string_delay = 50`).
+- Encoder actions modify the RAM variables directly and trigger immediate OLED overlay updates without touching EEPROM.
+- No `eeconfig_update_user` or deferred timers are used, ensuring zero flash wear and seamless real-time responsiveness.

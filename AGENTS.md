@@ -4,14 +4,11 @@ This file contains critical context and rules for agents working on this QMK fir
 
 ## Build Instructions
 - Always compile the firmware for the KB2040 MCU.
-- **Left Side:** `qmk compile -kb sofle/rev1 -km hp_km -e CONVERT_TO=kb2040 -e EXTRAFLAGS="-DIS_LEFT_SIDE" -e TARGET=sofle_rev1_hp_km_left`
-- **Right Side:** `qmk compile -kb sofle/rev1 -km hp_km -e CONVERT_TO=kb2040 -e EXTRAFLAGS="-DIS_RIGHT_SIDE" -e TARGET=sofle_rev1_hp_km_right`
-- **Testing Tip:** When making rapid changes to UI or logic, you only need to compile and flash the **Left Side** to test the change. You do not need to compile both sides every time.
-- **Automation (Hooks):** The exact Left Side compilation command above is whitelisted via Antigravity lifecycle hooks.
-  - `.agents/hooks.json` intercepts all `run_command` tool calls and pipes them to `.agents/allow_compile.py`.
-  - `.agents/allow_compile.py` parses the requested shell command. If it perfectly matches the Left Side compile command, it returns `{"decision": "allow"}` to bypass the terminal prompt. For all other commands, it returns `{"decision": "ask"}` to safely prompt the user.
-  - As an agent, you can execute the left-side compile command as a background task without ever prompting the user for permission.
-- **Connectivity Modes:** Thanks to the RP2040 (KB2040) native hardware USB detection, the firmware dynamically detects master/slave roles automatically without extra flags. It seamlessly supports three configurations:
+- **Unified Build (Both Sides):** `qmk compile -kb sofle/rev1 -km hp_km -e CONVERT_TO=kb2040`
+  - Output binary: `.build/sofle_rev1_hp_km_kb2040.uf2` (also copied to root `sofle_rev1_hp_km_kb2040.uf2`).
+  - Flash this single `.uf2` file to **both** Left and Right halves!
+  - To designate a side: Double-tap & hold Space (Layer 3) and press the key next to BOOT (EH_LEFT on Left, EH_RGHT on Right).
+- **Connectivity Modes:** Thanks to the RP2040 (KB2040) native hardware USB detection and `EE_HANDS`, the firmware dynamically detects master/slave roles automatically. It seamlessly supports three configurations:
   - **Mode 1:** Left connected via USB to host, Right connected to Left via TRRS (Standard split behavior).
   - **Mode 2:** Right connected via USB to host, Left connected to Right via TRRS (Reversed split behavior).
   - **Mode 3:** Both Left and Right connected directly to the host via USB (No TRRS cable). Both halves will instantly detect USB, become masters, and function as two independent halves simultaneously.
