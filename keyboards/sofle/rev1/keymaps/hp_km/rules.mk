@@ -28,7 +28,7 @@ TAP_DANCE_ENABLE = yes       # Keeps QMK's core Tap Dance engine on
 WPM_ENABLE = no
 
 SRC += fonts/fool_16.qff.c fonts/fool_32.qff.c fonts/rubik_48.qff.c fonts/nerd_32.qff.c \
-       gfx/wireframe_cube.qgf.c gfx/liquid_metaballs.qgf.c \
+       gfx/wireframe_cube.qgf.c gfx/liquid_metaballs.qgf.c gfx/bouncing_balls.qgf.c \
        gfx/plasma_wave.qgf.c gfx/lava_lamp.qgf.c gfx/raindrop_ripples.qgf.c \
        gfx/wireframe_torus.qgf.c gfx/matrix_rain.qgf.c \
        gfx/viscous_dropper.qgf.c gfx/vortex_rings.qgf.c \

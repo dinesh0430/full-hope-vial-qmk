@@ -12,6 +12,7 @@
 #include "fonts/nerd_32.qff.h"
 #include "gfx/wireframe_cube.qgf.h"
 #include "gfx/liquid_metaballs.qgf.h"
+#include "gfx/bouncing_balls.qgf.h"
 #include "gfx/plasma_wave.qgf.h"
 #include "gfx/lava_lamp.qgf.h"
 #include "gfx/raindrop_ripples.qgf.h"
@@ -55,7 +56,7 @@ painter_font_handle_t fool_32_font;
 painter_font_handle_t rubik_48_font;
 painter_font_handle_t nerd_32_font;
 
-#define NUM_SCREENSAVERS 19
+#define NUM_SCREENSAVERS 20
 painter_image_handle_t screensaver_imgs[NUM_SCREENSAVERS] = {NULL};
 deferred_token screensaver_anim_token = INVALID_DEFERRED_TOKEN;
 static uint8_t current_screensaver_idx = 0;
@@ -523,6 +524,7 @@ void qp_setup_oled(void) {
     screensaver_imgs[16] = qp_load_image_mem(gfx_superformula);
     screensaver_imgs[17] = qp_load_image_mem(gfx_kelvin_helmholtz);
     screensaver_imgs[18] = qp_load_image_mem(gfx_chladni_plate);
+    screensaver_imgs[19] = qp_load_image_mem(gfx_bouncing_balls);
 
     last_activity_timer = timer_read32();
 
