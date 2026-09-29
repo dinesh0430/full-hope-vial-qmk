@@ -22,20 +22,13 @@
 #include "gfx/wmp_spikes.qgf.h"
 #include "gfx/cyber_ribbon.qgf.h"
 #include "gfx/wave_string.qgf.h"
-#include "gfx/fourier_morph.qgf.h"
 #include "gfx/moire_curtain.qgf.h"
 #include "gfx/coupled_oscillators.qgf.h"
-#include "gfx/black_hole.qgf.h"
-#include "gfx/magnetic_field.qgf.h"
 #include "gfx/pendulum_wave.qgf.h"
 #include "gfx/pendulum_waves.qgf.h"
 #include "gfx/superformula.qgf.h"
 #include "gfx/kelvin_helmholtz.qgf.h"
 #include "gfx/chladni_plate.qgf.h"
-#include "gfx/karman_vortex.qgf.h"
-#include "gfx/tesseract_4d.qgf.h"
-#include "gfx/soliton_collision.qgf.h"
-#include "gfx/trefoil_knot.qgf.h"
 #include "char_anims.h"
 
 /* Shared state with keymap.c and quantum/mousekey.c */
@@ -62,7 +55,7 @@ painter_font_handle_t fool_32_font;
 painter_font_handle_t rubik_48_font;
 painter_font_handle_t nerd_32_font;
 
-#define NUM_SCREENSAVERS 26
+#define NUM_SCREENSAVERS 19
 painter_image_handle_t screensaver_imgs[NUM_SCREENSAVERS] = {NULL};
 deferred_token screensaver_anim_token = INVALID_DEFERRED_TOKEN;
 static uint8_t current_screensaver_idx = 0;
@@ -523,20 +516,13 @@ void qp_setup_oled(void) {
     screensaver_imgs[9] = qp_load_image_mem(gfx_wmp_spikes);
     screensaver_imgs[10] = qp_load_image_mem(gfx_cyber_ribbon);
     screensaver_imgs[11] = qp_load_image_mem(gfx_wave_string);
-    screensaver_imgs[12] = qp_load_image_mem(gfx_fourier_morph);
-    screensaver_imgs[13] = qp_load_image_mem(gfx_moire_curtain);
-    screensaver_imgs[14] = qp_load_image_mem(gfx_coupled_oscillators);
-    screensaver_imgs[15] = qp_load_image_mem(gfx_black_hole);
-    screensaver_imgs[16] = qp_load_image_mem(gfx_magnetic_field);
-    screensaver_imgs[17] = qp_load_image_mem(gfx_pendulum_wave);
-    screensaver_imgs[18] = qp_load_image_mem(gfx_pendulum_waves);
-    screensaver_imgs[19] = qp_load_image_mem(gfx_superformula);
-    screensaver_imgs[20] = qp_load_image_mem(gfx_kelvin_helmholtz);
-    screensaver_imgs[21] = qp_load_image_mem(gfx_chladni_plate);
-    screensaver_imgs[22] = qp_load_image_mem(gfx_karman_vortex);
-    screensaver_imgs[23] = qp_load_image_mem(gfx_tesseract_4d);
-    screensaver_imgs[24] = qp_load_image_mem(gfx_soliton_collision);
-    screensaver_imgs[25] = qp_load_image_mem(gfx_trefoil_knot);
+    screensaver_imgs[12] = qp_load_image_mem(gfx_moire_curtain);
+    screensaver_imgs[13] = qp_load_image_mem(gfx_coupled_oscillators);
+    screensaver_imgs[14] = qp_load_image_mem(gfx_pendulum_wave);
+    screensaver_imgs[15] = qp_load_image_mem(gfx_pendulum_waves);
+    screensaver_imgs[16] = qp_load_image_mem(gfx_superformula);
+    screensaver_imgs[17] = qp_load_image_mem(gfx_kelvin_helmholtz);
+    screensaver_imgs[18] = qp_load_image_mem(gfx_chladni_plate);
 
     last_activity_timer = timer_read32();
 
